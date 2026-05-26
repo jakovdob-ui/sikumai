@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>שולחן 4 – סיכום פרקים</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #0f0f0f;
+    color: #e8e8e8;
+    min-height: 100vh;
+  }
+  header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 2px solid #e94560;
+  }
+  header h1 { font-size: 1.8rem; color: #fff; }
+  header span { font-size: 1rem; color: #aaa; }
+
+  .container { max-width: 1000px; margin: 0 auto; padding: 32px 20px; }
+
+  .input-section {
+    background: #1a1a2e;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 32px;
+    border: 1px solid #2a2a4a;
+  }
+  .input-section label { display: block; margin-bottom: 10px; color: #aaa; font-size: 0.95rem; }
+  .input-row { display: flex; gap: 10px; }
+  .input-row input {
+    flex: 1;
+    padding: 12px 16px;
+    background: #0f0f1a;
+    border: 1px solid #3a3a5a;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1rem;
+    direction: ltr;
+  }
+  .input-row input:focus { outline: none; border-color: #e94560; }
+  .btn {
+    padding: 12px 24px;
+    background: #e94560;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #c73652; }
+  .btn:disabled { background: #555; cursor: not-allowed; }
+
+  #video-embed { margin-bottom: 28px; border-radius: 12px; overflow: hidden; display: none; }
+  #video-embed iframe { width: 100%; height: 450px; border: none; }
+
+  .stats-bar {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    background: #1a1a2e;
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    padding: 10px 20px;
+    text-align: center;
+  }
+  .stat .val { font-size: 1.4rem; font-weight: bold; color: #e94560; }
+  .stat .lbl { font-size: 0.8rem; color: #888; margin-top: 2px; }
+
+  .sections-grid { display: flex; flex-direction: column; gap: 14px; }
+
+  .section-card {
+    background: #1a1a2e;
+    border: 1px solid #2a2a4a;
+    border-radius: 12px;
+    padding: 18px 22px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .section-card:hover { border-color: #e94560; background: #1f1f38; }
+  .section-card.active { border-color: #e94560; background: #1f1f38; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+  .section-num {
+    background: #e94560;
+    color: #fff;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  .section-time { color: #aaa; font-size: 0.85rem; }
+  .section-title { font-weight: bold; font-size: 1rem; flex: 1; }
+  .toggle-icon { color: #e94560; font-size: 1.2rem; transition: transform 0.2s; }
+  .section-card.active .toggle-icon { transform: rotate(180deg); }
+
+  .section-text {
+    color: #ccc;
+    font-size: 0.92rem;
+    line-height: 1.7;
+    display: none;
+    border-top: 1px solid #2a2a4a;
+    padding-top: 14px;
+    margin-top: 4px;
+  }
+  .section-card.active .section-text { display: block; }
+
+  #loading {
+    text-align: center;
+    padding: 40px;
+    display: none;
+    color: #aaa;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid #2a2a4a;
+    border-top-color: #e94560;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #error { color: #e94560; text-align: center; padding: 20px; display: none; }
+
+  .full-text-section {
+    margin-top: 28px;
+    background: #1a1a2e;
+    border: 1px solid #2a2a4a;
+    border-radius: 12px;
+    padding: 20px;
+    display: none;
+  }
+  .full-text-section h3 {
+    margin-bottom: 12px;
+    color: #e94560;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .full-text-section textarea {
+    width: 100%;
+    height: 200px;
+    background: #0f0f1a;
+    border: 1px solid #3a3a5a;
+    border-radius: 8px;
+    color: #ccc;
+    padding: 12px;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    resize: vertical;
+  }
+  .copy-btn {
+    padding: 6px 14px;
+    background: #2a2a4a;
+    color: #aaa;
+    border: 1px solid #3a3a5a;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .copy-btn:hover { background: #3a3a5a; color: #fff; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🎙️ שולחן 4</h1>
+    <span>סיכום פרקים אוטומטי</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="input-section">
+    <label>הדבק קישור לפרק יוטיוב:</label>
+    <div class="input-row">
+      <input type="text" id="url-input" placeholder="https://www.youtube.com/watch?v=..." />
+      <button class="btn" id="load-btn" onclick="loadTranscript()">טען פרק</button>
+    </div>
+  </div>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <div>מוריד תמלול מיוטיוב...</div>
+  </div>
+
+  <div id="error"></div>
+
+  <div id="results" style="display:none">
+    <div id="video-embed">
+      <iframe id="yt-iframe" allowfullscreen></iframe>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat">
+        <div class="val" id="stat-sections">-</div>
+        <div class="lbl">קטעים</div>
+      </div>
+      <div class="stat">
+        <div class="val" id="stat-duration">-</div>
+        <div class="lbl">משך</div>
+      </div>
+      <button class="btn" id="translate-btn" onclick="translateToHebrew()" style="display:none">
+        🌐 תרגם לעברית
+      </button>
+      <button class="btn" id="pptx-btn" onclick="downloadPptx()" style="display:none;background:#2a6496">
+        📊 מצגת לפי זמן
+      </button>
+      <button class="btn" id="smart-pptx-btn" onclick="downloadSmartPptx()" style="display:none;background:#1a7a4a">
+        🧠 מצגת חכמה
+      </button>
+      <button class="btn" id="js-pptx-btn" onclick="downloadJsPptx()" style="display:none;background:#6d28d9">
+        ✨ מצגת פרמיום
+      </button>
+      <button class="btn" id="summary-btn" onclick="generateSummary()" style="display:none;background:#b7410e">
+        🤖 סיכום AI
+      </button>
+      <button class="btn" id="opps-btn" onclick="findOpportunities()" style="display:none;background:#0d7a3e">
+        💰 הזדמנויות עסקיות
+      </button>
+    </div>
+
+    <div id="opps-section" style="display:none;margin-bottom:24px">
+      <div style="background:#1a1a2e;border:1px solid #0d7a3e;border-radius:12px;padding:20px">
+        <h3 style="color:#22c55e;margin-bottom:14px">💰 הזדמנויות עסקיות</h3>
+        <div id="opps-content" style="color:#ddd;font-size:0.95rem;line-height:1.8;white-space:pre-wrap;direction:rtl"></div>
+      </div>
+    </div>
+
+    <div id="summary-section" style="display:none;margin-bottom:24px">
+      <div style="background:#1a1a2e;border:1px solid #b7410e;border-radius:12px;padding:20px">
+        <h3 style="color:#b7410e;margin-bottom:14px">🤖 סיכום AI</h3>
+        <div id="summary-content" style="color:#ddd;font-size:0.95rem;line-height:1.8;white-space:pre-wrap;direction:rtl"></div>
+      </div>
+    </div>
+
+    <div class="sections-grid" id="sections-grid"></div>
+
+    <div class="full-text-section" id="full-text-section">
+      <h3>
+        <span>📄 תמלול מלא</span>
+        <button class="copy-btn" onclick="copyText()">העתק הכל</button>
+      </h3>
+      <textarea id="full-text-area" readonly></textarea>
+    </div>
+  </div>
+
+</div>
+
+<script>
+async function loadTranscript() {
+  const url = document.getElementById('url-input').value.trim();
+  if (!url) return;
+
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('error').style.display = 'none';
+  document.getElementById('load-btn').disabled = true;
+
+  try {
+    const res = await fetch('/api/transcript', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url})
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'שגיאה לא ידועה');
+    }
+
+    renderResults(data);
+  } catch (e) {
+    document.getElementById('error').textContent = '❌ ' + e.message;
+    document.getElementById('error').style.display = 'block';
+  } finally {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('load-btn').disabled = false;
+  }
+}
+
+function renderResults(data) {
+  // וידאו
+  const embed = document.getElementById('video-embed');
+  document.getElementById('yt-iframe').src = `https://www.youtube.com/embed/${data.video_id}`;
+  embed.style.display = 'block';
+
+  // סטטיסטיקות
+  document.getElementById('stat-sections').textContent = data.total_sections;
+  document.getElementById('stat-duration').textContent = data.duration;
+
+  const translateBtn = document.getElementById('translate-btn');
+  translateBtn.style.display = 'inline-block';
+  translateBtn.textContent = '🌐 תרגם לעברית';
+  translateBtn.disabled = false;
+
+  const pptxBtn = document.getElementById('pptx-btn');
+  pptxBtn.style.display = 'inline-block';
+  const smartBtn = document.getElementById('smart-pptx-btn');
+  smartBtn.style.display = 'inline-block';
+  document.getElementById('js-pptx-btn').style.display = 'inline-block';
+  document.getElementById('summary-btn').style.display = 'inline-block';
+  document.getElementById('opps-btn').style.display = 'inline-block';
+
+  // קטעים
+  currentSections = data.sections;
+  renderSections(data.sections);
+
+  // תמלול מלא
+  document.getElementById('full-text-area').value = data.full_text;
+  document.getElementById('full-text-section').style.display = 'block';
+
+  document.getElementById('results').style.display = 'block';
+}
+
+let currentSections = [];
+
+async function translateToHebrew() {
+  const btn = document.getElementById('translate-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ מתרגם...';
+
+  try {
+    const res = await fetch('/api/translate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({sections: currentSections})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    currentSections = data.sections;
+    renderSections(data.sections);
+    document.getElementById('full-text-area').value = data.full_text;
+    btn.textContent = '✓ תורגם';
+  } catch (e) {
+    btn.textContent = '❌ שגיאה: ' + e.message;
+    btn.disabled = false;
+  }
+}
+
+function renderSections(sections) {
+  const grid = document.getElementById('sections-grid');
+  grid.innerHTML = '';
+  sections.forEach((sec, i) => {
+    const timeRange = sec.end_fmt ? `${sec.start_fmt} – ${sec.end_fmt}` : `${sec.start_fmt}+`;
+    const preview = sec.text.substring(0, 80) + (sec.text.length > 80 ? '...' : '');
+    const card = document.createElement('div');
+    card.className = 'section-card';
+    card.innerHTML = `
+      <div class="section-header">
+        <div class="section-num">${i + 1}</div>
+        <div style="flex:1">
+          <div class="section-title">${preview}</div>
+          <div class="section-time">⏱ ${timeRange}</div>
+        </div>
+        <div class="toggle-icon">▼</div>
+      </div>
+      <div class="section-text">${sec.text}</div>
+    `;
+    card.onclick = () => card.classList.toggle('active');
+    grid.appendChild(card);
+  });
+}
+
+async function downloadJsPptx() {
+  const btn = document.getElementById('js-pptx-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ בונה מצגת פרמיום...';
+  try {
+    const full_text = document.getElementById('full-text-area').value;
+    const res = await fetch('/api/js_pptx', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({full_text, title: 'סיכום פרק'})
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'premium.pptx'; a.click();
+    URL.revokeObjectURL(url);
+    btn.textContent = '✓ הורד!';
+  } catch(e) {
+    btn.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '✨ מצגת פרמיום'; }, 3000);
+  }
+}
+
+async function downloadSmartPptx() {
+  const btn = document.getElementById('smart-pptx-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Claude מנתח נושאים...';
+
+  try {
+    const full_text = document.getElementById('full-text-area').value;
+    const title = document.getElementById('url-input').value;
+
+    const res = await fetch('/api/smart_pptx', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({full_text, title: 'סיכום פרק'})
+    });
+
+    if (!res.ok) {
+      const d = await res.json();
+      throw new Error(d.error);
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'smart_presentation.pptx';
+    a.click();
+    URL.revokeObjectURL(url);
+    btn.textContent = '✓ הורד!';
+  } catch (e) {
+    btn.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '🧠 מצגת חכמה לפי נושאים'; }, 3000);
+  }
+}
+
+async function downloadPptx() {
+  const btn = document.getElementById('pptx-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ בונה מצגת...';
+
+  try {
+    const title = document.getElementById('url-input').value.includes('watch')
+      ? 'סיכום פרק'
+      : 'מצגת';
+
+    const res = await fetch('/api/pptx', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({sections: currentSections, title})
+    });
+
+    if (!res.ok) {
+      const d = await res.json();
+      throw new Error(d.error);
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'presentation.pptx';
+    a.click();
+    URL.revokeObjectURL(url);
+    btn.textContent = '✓ הורד!';
+  } catch (e) {
+    btn.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '📊 הורד מצגת PowerPoint'; }, 3000);
+  }
+}
+
+async function findOpportunities() {
+  const btn = document.getElementById('opps-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ מחפש הזדמנויות...';
+
+  try {
+    const full_text = document.getElementById('full-text-area').value;
+    const res = await fetch('/api/opportunities', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({full_text})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    document.getElementById('opps-content').textContent = data.opportunities;
+    document.getElementById('opps-section').style.display = 'block';
+    document.getElementById('opps-section').scrollIntoView({behavior: 'smooth'});
+    btn.textContent = '✓ נמצאו!';
+  } catch (e) {
+    btn.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '💰 הזדמנויות עסקיות'; }, 3000);
+  }
+}
+
+async function generateSummary() {
+  const btn = document.getElementById('summary-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ מסכם...';
+
+  try {
+    const full_text = document.getElementById('full-text-area').value;
+    const res = await fetch('/api/summary', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({full_text})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    document.getElementById('summary-content').textContent = data.summary;
+    document.getElementById('summary-section').style.display = 'block';
+    document.getElementById('summary-section').scrollIntoView({behavior: 'smooth'});
+    btn.textContent = '✓ סוכם!';
+  } catch (e) {
+    btn.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '🤖 סיכום AI'; }, 3000);
+  }
+}
+
+function copyText() {
+  const ta = document.getElementById('full-text-area');
+  ta.select();
+  document.execCommand('copy');
+  const btn = document.querySelector('.copy-btn');
+  btn.textContent = '✓ הועתק!';
+  setTimeout(() => btn.textContent = 'העתק הכל', 2000);
+}
+
+// טען אוטומטית אם יש URL בפרמטר
+window.onload = () => {
+  const params = new URLSearchParams(location.search);
+  const v = params.get('v');
+  if (v) {
+    document.getElementById('url-input').value = 'https://www.youtube.com/watch?v=' + v;
+    loadTranscript();
+  }
+};
+</script>
+
+</body>
+</html>

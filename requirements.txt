@@ -1,0 +1,7 @@
+flask
+anthropic
+python-dotenv
+gunicorn
+youtube-transcript-api
+deep-translator
+python-pptx

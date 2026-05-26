@@ -1,0 +1,6 @@
+.env
+run.bat
+__pycache__/
+*.pyc
+pptx_gen/node_modules/
+*.pptx
