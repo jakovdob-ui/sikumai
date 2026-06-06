@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>תמחור — שולחן 4</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#0f0f0f;color:#e8e8e8;min-height:100vh}
+  header{background:linear-gradient(135deg,#1a1a2e,#0f3460);padding:20px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #e94560}
+  header h1{font-size:1.5rem;color:#fff}
+  header h1 span{color:#e94560}
+  .back{color:#aaa;text-decoration:none;font-size:0.9rem}
+  .back:hover{color:#fff}
+  .hero{text-align:center;padding:60px 20px 40px}
+  .hero h2{font-size:2.2rem;font-weight:900;margin-bottom:12px}
+  .hero h2 span{color:#e94560}
+  .hero p{color:#aaa;font-size:1.05rem;max-width:500px;margin:0 auto}
+  .plans{display:flex;gap:24px;justify-content:center;padding:0 20px 60px;flex-wrap:wrap;max-width:900px;margin:0 auto}
+  .plan{background:#1a1a2e;border:2px solid #2a2a4a;border-radius:16px;padding:36px 32px;width:340px;position:relative;transition:border-color .2s}
+  .plan.pro{border-color:#e94560;box-shadow:0 0 40px rgba(233,69,96,.15)}
+  .badge{position:absolute;top:-14px;right:50%;transform:translateX(50%);background:#e94560;color:#fff;font-size:0.75rem;font-weight:700;padding:4px 16px;border-radius:20px;letter-spacing:.05em}
+  .plan-name{font-size:1.1rem;font-weight:700;color:#aaa;margin-bottom:8px}
+  .plan.pro .plan-name{color:#e94560}
+  .price{font-size:2.8rem;font-weight:900;color:#fff;margin-bottom:4px}
+  .price span{font-size:1rem;color:#888;font-weight:400}
+  .price-note{font-size:0.82rem;color:#666;margin-bottom:28px}
+  .features{list-style:none;margin-bottom:32px}
+  .features li{padding:9px 0;border-bottom:1px solid #2a2a4a;font-size:0.92rem;color:#ccc;display:flex;align-items:center;gap:10px}
+  .features li:last-child{border-bottom:none}
+  .features .check{color:#22c55e;font-size:1rem;flex-shrink:0}
+  .features .lock{color:#666;font-size:1rem;flex-shrink:0}
+  .features .dim{color:#555}
+  .btn{display:block;width:100%;padding:14px;text-align:center;border-radius:8px;font-weight:700;font-size:1rem;cursor:pointer;transition:all .2s;border:none;text-decoration:none}
+  .btn-free{background:#2a2a4a;color:#aaa}
+  .btn-free:hover{background:#3a3a5a;color:#fff}
+  .btn-pro{background:#e94560;color:#fff}
+  .btn-pro:hover{background:#c73652}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .current{display:block;width:100%;padding:14px;text-align:center;background:#1f1f38;border:1px solid #3a3a5a;border-radius:8px;font-size:0.9rem;color:#888}
+  .guarantee{text-align:center;padding:0 20px 40px;color:#666;font-size:0.85rem}
+  .guarantee span{color:#aaa}
+  #success-banner{display:none;background:#0d7a3e;color:#fff;padding:14px;text-align:center;font-weight:600}
+</style>
+</head>
+<body>
+
+<div id="success-banner">🎉 ברוך הבא ל-Pro! כל הפיצ'רים פתוחים לך עכשיו.</div>
+
+<header>
+  <h1>שולחן<span> 4</span></h1>
+  <a href="/" class="back">← חזור לאפליקציה</a>
+</header>
+
+<div class="hero">
+  <h2>בחר את <span>תוכנית</span> שמתאימה לך</h2>
+  <p>התחל בחינם, שדרג כשתרצה — ביטול בכל עת</p>
+</div>
+
+<div class="plans">
+  <!-- Free Plan -->
+  <div class="plan">
+    <div class="plan-name">חינמי</div>
+    <div class="price">₪0<span>/חודש</span></div>
+    <div class="price-note">ללא כרטיס אשראי</div>
+    <ul class="features">
+      <li><span class="check">✓</span> 3 סיכומים לחודש</li>
+      <li><span class="check">✓</span> צפייה בקטעים עם טיימקוד</li>
+      <li><span class="check">✓</span> תמלול מלא + העתקה</li>
+      <li><span class="check">✓</span> תרגום לעברית</li>
+      <li><span class="check">✓</span> מצגת PowerPoint בסיסית</li>
+      <li><span class="lock">🔒</span><span class="dim">מצגת AI חכמה</span></li>
+      <li><span class="lock">🔒</span><span class="dim">מצגת פרמיום (Futuristic)</span></li>
+      <li><span class="lock">🔒</span><span class="dim">סיכום AI</span></li>
+      <li><span class="lock">🔒</span><span class="dim">הזדמנויות עסקיות</span></li>
+      <li><span class="lock">🔒</span><span class="dim">שליחה למייל</span></li>
+    </ul>
+    {% if user and user['plan'] == 'free' %}
+    <span class="current">התוכנית הנוכחית שלך</span>
+    {% elif not user %}
+    <a href="/register" class="btn btn-free">התחל בחינם</a>
+    {% else %}
+    <span class="current">התוכנית הנוכחית שלך</span>
+    {% endif %}
+  </div>
+
+  <!-- Pro Plan -->
+  <div class="plan pro">
+    <div class="badge">הכי פופולרי</div>
+    <div class="plan-name">Pro</div>
+    <div class="price">₪29<span>/חודש</span></div>
+    <div class="price-note">ביטול בכל עת · חיוב חודשי</div>
+    <ul class="features">
+      <li><span class="check">✓</span> <strong>ללא הגבלת סיכומים</strong></li>
+      <li><span class="check">✓</span> צפייה בקטעים עם טיימקוד</li>
+      <li><span class="check">✓</span> תמלול מלא + העתקה</li>
+      <li><span class="check">✓</span> תרגום לעברית</li>
+      <li><span class="check">✓</span> מצגת PowerPoint בסיסית</li>
+      <li><span class="check">✓</span> <strong>מצגת AI חכמה</strong></li>
+      <li><span class="check">✓</span> <strong>מצגת פרמיום (Futuristic)</strong></li>
+      <li><span class="check">✓</span> <strong>סיכום AI</strong></li>
+      <li><span class="check">✓</span> <strong>הזדמנויות עסקיות</strong></li>
+      <li><span class="check">✓</span> <strong>שליחה למייל</strong></li>
+    </ul>
+    {% if user and user['plan'] == 'pro' %}
+    <span class="current">✓ Pro פעיל</span>
+    <br><br>
+    <button class="btn btn-free" onclick="openPortal()">נהל מנוי</button>
+    {% elif user %}
+    <button class="btn btn-pro" id="upgrade-btn" onclick="upgrade()">שדרג ל-Pro ←</button>
+    {% else %}
+    <a href="/register" class="btn btn-pro">התחל עם Pro ←</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="guarantee">
+  <span>🔒 תשלום מאובטח דרך Stripe</span> &nbsp;·&nbsp;
+  <span>ביטול מיידי דרך הגדרות המנוי</span> &nbsp;·&nbsp;
+  <span>אין עמלות נסתרות</span>
+</div>
+
+<script>
+async function upgrade() {
+  const btn = document.getElementById('upgrade-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ מעביר לתשלום...';
+  try {
+    const res = await fetch('/create-checkout-session', {method:'POST'});
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      btn.textContent = '❌ ' + (data.error || 'שגיאה');
+      btn.disabled = false;
+    }
+  } catch(e) {
+    btn.textContent = '❌ שגיאה, נסה שוב';
+    btn.disabled = false;
+  }
+}
+
+async function openPortal() {
+  try {
+    const res = await fetch('/billing-portal', {method:'POST'});
+    const data = await res.json();
+    if (data.url) window.location.href = data.url;
+  } catch(e) {}
+}
+
+if (location.search.includes('upgraded=1')) {
+  document.getElementById('success-banner').style.display = 'block';
+}
+</script>
+
+</body>
+</html>

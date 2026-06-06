@@ -5,3 +5,7 @@ gunicorn
 youtube-transcript-api
 deep-translator
 python-pptx
+yt-dlp
+werkzeug
+requests
+psycopg2-binary

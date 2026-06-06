@@ -5,9 +5,20 @@ import json
 import tempfile
 import subprocess
 import anthropic
+import requests as http_requests
+import hmac
+import hashlib
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify, send_file
-from youtube_transcript_api import YouTubeTranscriptApi
+from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, render_template, request, jsonify, send_file, session, redirect
+import db as user_db
+# youtube_transcript_api כגיבוי בלבד — גישה ראשית דרך Invidious
+try:
+    from youtube_transcript_api import YouTubeTranscriptApi
+    _YT_API_AVAILABLE = True
+except ImportError:
+    _YT_API_AVAILABLE = False
 from deep_translator import GoogleTranslator
 from pptx import Presentation
 from pptx.util import Inches, Pt
@@ -17,7 +28,394 @@ from pptx.enum.text import PP_ALIGN
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
 app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY', 'shulchan4-secret-2026')
 
+COOKIES_FILE = os.path.join(os.path.dirname(__file__), 'yt_cookies.txt')
+RESEND_KEY   = os.getenv('RESEND_API_KEY', '')
+
+LS_API_KEY        = os.getenv('LS_API_KEY', '')
+LS_STORE_ID       = os.getenv('LS_STORE_ID', '')
+LS_VARIANT_ID     = os.getenv('LS_VARIANT_ID', '')
+LS_WEBHOOK_SECRET = os.getenv('LS_WEBHOOK_SECRET', '')
+APP_URL           = os.getenv('APP_URL', 'http://localhost:5002')
+FREE_LIMIT        = 3
+
+user_db.init()
+
+def current_user():
+    uid = session.get('user_id')
+    if not uid:
+        return None
+    return user_db.get_by_id(uid)
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('user_id'):
+            return redirect('/login')
+        return f(*args, **kwargs)
+    return decorated
+
+
+def pro_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        u = current_user()
+        if not u:
+            return jsonify({'error': 'לא מחובר', 'upgrade': False}), 401
+        if u['plan'] != 'pro':
+            return jsonify({'error': 'פיצ\'ר זה זמין לחברי Pro בלבד', 'upgrade': True}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if session.get('user_id'):
+        return redirect('/')
+    error = ''
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        pw    = request.form.get('password', '')
+        u = user_db.get_by_email(email)
+        if u and check_password_hash(u['password_hash'], pw):
+            session['user_id'] = u['id']
+            return redirect('/')
+        error = 'אימייל או סיסמה שגויים'
+    return render_template('login.html', error=error)
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if session.get('user_id'):
+        return redirect('/')
+    error = ''
+    if request.method == 'POST':
+        name  = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        pw    = request.form.get('password', '')
+        if not name or not email or not pw:
+            error = 'נא למלא את כל השדות'
+        elif len(pw) < 6:
+            error = 'הסיסמה חייבת להכיל לפחות 6 תווים'
+        elif user_db.get_by_email(email):
+            error = 'האימייל כבר רשום במערכת'
+        else:
+            try:
+                uid = user_db.create(email, generate_password_hash(pw), name)
+                session['user_id'] = uid
+                return redirect('/')
+            except Exception:
+                error = 'שגיאה בהרשמה, נסה שוב'
+    return render_template('register.html', error=error)
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/login')
+
+
+@app.route('/pricing')
+def pricing():
+    u = current_user()
+    upgraded = request.args.get('upgraded') == '1'
+    return render_template('pricing.html', user=u, upgraded=upgraded)
+
+
+@app.route('/create-checkout-session', methods=['POST'])
+@login_required
+def create_checkout():
+    u = current_user()
+    if u['plan'] == 'pro':
+        return jsonify({'error': 'כבר מנוי Pro'}), 400
+    if not LS_API_KEY:
+        return jsonify({'error': 'מערכת התשלום לא מוגדרת עדיין'}), 500
+    try:
+        resp = http_requests.post(
+            'https://api.lemonsqueezy.com/v1/checkouts',
+            headers={
+                'Authorization': f'Bearer {LS_API_KEY}',
+                'Accept': 'application/vnd.api+json',
+                'Content-Type': 'application/vnd.api+json',
+            },
+            json={
+                'data': {
+                    'type': 'checkouts',
+                    'attributes': {
+                        'checkout_data': {
+                            'email': u['email'],
+                            'custom': {'user_id': str(u['id'])},
+                        },
+                        'product_options': {
+                            'redirect_url': APP_URL + '/pricing?upgraded=1',
+                        },
+                    },
+                    'relationships': {
+                        'store': {'data': {'type': 'stores', 'id': str(LS_STORE_ID)}},
+                        'variant': {'data': {'type': 'variants', 'id': str(LS_VARIANT_ID)}},
+                    },
+                }
+            },
+            timeout=10,
+        )
+        resp.raise_for_status()
+        checkout_url = resp.json()['data']['attributes']['url']
+        return jsonify({'url': checkout_url})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/ls-webhook', methods=['POST'])
+def ls_webhook():
+    payload = request.get_data()
+    signature = request.headers.get('X-Signature', '')
+    if LS_WEBHOOK_SECRET:
+        expected = hmac.new(LS_WEBHOOK_SECRET.encode(), payload, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected, signature):
+            return '', 400
+
+    data = request.json or {}
+    event = data.get('meta', {}).get('event_name', '')
+    attrs = data.get('data', {}).get('attributes', {})
+
+    if event == 'subscription_created':
+        custom = data.get('meta', {}).get('custom_data', {})
+        uid = int(custom.get('user_id', 0))
+        if uid:
+            customer_id = str(attrs.get('customer_id', ''))
+            sub_id = str(data.get('data', {}).get('id', ''))
+            portal_url = attrs.get('urls', {}).get('customer_portal', '')
+            user_db.set_pro(uid, customer_id, sub_id, portal_url)
+
+    elif event in ('subscription_cancelled', 'subscription_expired', 'subscription_paused'):
+        customer_id = str(attrs.get('customer_id', ''))
+        u = user_db.get_by_payment_customer(customer_id)
+        if u:
+            user_db.set_free(u['id'])
+
+    return '', 200
+
+
+@app.route('/billing-portal', methods=['POST'])
+@login_required
+def billing_portal():
+    u = current_user()
+    portal_url = u['portal_url'] if u['portal_url'] else None
+    if not portal_url:
+        return jsonify({'error': 'קישור לניהול מנוי לא זמין, פנה אלינו'}), 400
+    return jsonify({'url': portal_url})
+
+
+# ── yt-dlp availability ────────────────────────────────────
+try:
+    import yt_dlp
+    _YTDLP_AVAILABLE = True
+except ImportError:
+    _YTDLP_AVAILABLE = False
+
+# ── Invidious instances (ניסיון בסדר הזה) ─────────────────
+INVIDIOUS_INSTANCES = [
+    'https://invidious.privacyredirect.com',
+    'https://inv.riverside.rocks',
+    'https://invidious.perennialte.ch',
+    'https://iv.datura.network',
+    'https://invidious.lunar.icu',
+    'https://yewtu.be',
+    'https://inv.tux.pizza',
+    'https://invidious.flokinet.to',
+]
+
+def _parse_vtt(vtt_text):
+    """ממיר WebVTT לרשימת snippets עם .start ו-.text"""
+    class Snippet:
+        def __init__(self, start, text):
+            self.start = start
+            self.text  = text
+
+    snippets = []
+    lines = vtt_text.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        # זיהוי שורת זמן: 00:00:00.000 --> 00:00:03.000
+        if '-->' in line:
+            time_part = line.split('-->')[0].strip()
+            parts = time_part.split(':')
+            try:
+                if len(parts) == 3:
+                    h, m, s = parts
+                    start_sec = int(h)*3600 + int(m)*60 + float(s.replace(',', '.'))
+                else:
+                    m, s = parts
+                    start_sec = int(m)*60 + float(s.replace(',', '.'))
+            except:
+                i += 1
+                continue
+            # אסוף את שורות הטקסט
+            i += 1
+            text_lines = []
+            while i < len(lines) and lines[i].strip():
+                t = lines[i].strip()
+                # נקה תגיות HTML כמו <c>, </c>
+                import re as _re
+                t = _re.sub(r'<[^>]+>', '', t)
+                if t:
+                    text_lines.append(t)
+                i += 1
+            if text_lines:
+                text = ' '.join(text_lines)
+                # הסר כפילויות של הפסקה האחרונה
+                if snippets and snippets[-1].text == text:
+                    i += 1
+                    continue
+                snippets.append(Snippet(start_sec, text))
+        i += 1
+    return snippets
+
+def fetch_via_ytdlp(video_id):
+    """מוריד תמלול דרך yt-dlp — הכי אמין, תומך בכתוביות אוטומטיות"""
+    if not _YTDLP_AVAILABLE:
+        return None, None
+
+    class Snippet:
+        def __init__(self, start, text):
+            self.start = start
+            self.text  = text
+
+    ydl_opts = {
+        'skip_download': True,
+        'writesubtitles': True,
+        'writeautomaticsub': True,
+        'subtitleslangs': ['he', 'iw', 'en'],
+        'subtitlesformat': 'vtt',
+        'quiet': True,
+        'no_warnings': True,
+    }
+    if os.path.exists(COOKIES_FILE):
+        ydl_opts['cookiefile'] = COOKIES_FILE
+
+    url = f'https://www.youtube.com/watch?v={video_id}'
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            subs = info.get('subtitles', {})
+            auto_subs = info.get('automatic_captions', {})
+
+            chosen_lang = None
+            chosen_data = None
+            for lang in ['he', 'iw', 'en']:
+                if lang in subs:
+                    chosen_lang = lang
+                    chosen_data = subs[lang]
+                    break
+            if not chosen_data:
+                for lang in ['he', 'iw', 'en']:
+                    if lang in auto_subs:
+                        chosen_lang = lang
+                        chosen_data = auto_subs[lang]
+                        break
+            if not chosen_data and subs:
+                chosen_lang = list(subs.keys())[0]
+                chosen_data = subs[chosen_lang]
+            if not chosen_data and auto_subs:
+                chosen_lang = list(auto_subs.keys())[0]
+                chosen_data = auto_subs[chosen_lang]
+
+            if not chosen_data:
+                return None, None
+
+            vtt_url = None
+            for fmt in chosen_data:
+                if fmt.get('ext') == 'vtt':
+                    vtt_url = fmt.get('url')
+                    break
+            if not vtt_url and chosen_data:
+                base_url = chosen_data[0].get('url', '')
+                if 'youtube.com/api/timedtext' in base_url:
+                    sep = '&' if '?' in base_url else '?'
+                    vtt_url = base_url + sep + 'fmt=vtt'
+                else:
+                    vtt_url = base_url
+
+            if not vtt_url:
+                return None, None
+
+            rv = http_requests.get(vtt_url, timeout=15)
+            if rv.status_code != 200:
+                return None, None
+
+            snippets = _parse_vtt(rv.text)
+            if snippets:
+                print(f"[yt-dlp] {len(snippets)} snippets ({chosen_lang})")
+                return snippets, chosen_lang
+
+    except Exception as e:
+        print(f"[yt-dlp] error: {e}")
+
+    return None, None
+
+
+def fetch_via_invidious(video_id):
+    """מוריד תמלול דרך Invidious API — עובד מכל IP"""
+    HEADERS_INV = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0',
+        'Accept': 'application/json',
+    }
+    lang_priority = ['he', 'iw', 'Hebrew', 'en', 'English']
+
+    for base in INVIDIOUS_INSTANCES:
+        try:
+            # שלב 1: קבל רשימת כתוביות
+            r = http_requests.get(
+                f'{base}/api/v1/captions/{video_id}',
+                headers=HEADERS_INV, timeout=10)
+            if r.status_code != 200:
+                continue
+
+            captions = r.json().get('captions', [])
+            if not captions:
+                continue
+
+            # שלב 2: בחר שפה לפי עדיפות
+            chosen = None
+            for lang in lang_priority:
+                for cap in captions:
+                    if lang.lower() in cap.get('language_code','').lower() or \
+                       lang.lower() in cap.get('label','').lower():
+                        chosen = cap
+                        break
+                if chosen:
+                    break
+            if not chosen:
+                chosen = captions[0]  # כל שפה שיש
+
+            # שלב 3: הורד את קובץ ה-VTT
+            cap_url = chosen.get('url', '')
+            if not cap_url.startswith('http'):
+                cap_url = base + cap_url
+            # הוסף format=vtt
+            if '?' in cap_url:
+                cap_url += '&format=vtt'
+            else:
+                cap_url += '?format=vtt'
+
+            rv = http_requests.get(cap_url, headers=HEADERS_INV, timeout=15)
+            if rv.status_code != 200:
+                continue
+
+            snippets = _parse_vtt(rv.text)
+            if snippets:
+                lang_code = chosen.get('language_code', 'he')
+                print(f"[Invidious] {base} → {len(snippets)} snippets ({lang_code})")
+                return snippets, lang_code
+
+        except Exception as e:
+            print(f"[Invidious] {base} error: {e}")
+            continue
+
+    return None, None
 
 def extract_video_id(url):
     patterns = [
@@ -76,12 +474,23 @@ def group_into_sections(snippets, section_minutes=5):
 
 
 @app.route('/')
+@login_required
 def index():
-    return render_template('index.html')
+    u = current_user()
+    usage = user_db.month_usage(u['id'])
+    upgraded = request.args.get('upgraded') == '1'
+    return render_template('index.html', user=u, usage=usage, free_limit=FREE_LIMIT, upgraded=upgraded)
 
 
 @app.route('/api/transcript', methods=['POST'])
+@login_required
 def get_transcript():
+    u = current_user()
+    if u['plan'] == 'free' and user_db.month_usage(u['id']) >= FREE_LIMIT:
+        return jsonify({
+            'error': f'הגעת למגבלת {FREE_LIMIT} סיכומים חינמיים החודש',
+            'upgrade': True,
+        }), 403
     data = request.json or {}
     url = data.get('url', '').strip()
     if not url:
@@ -91,24 +500,47 @@ def get_transcript():
     if not vid:
         return jsonify({'error': 'קישור יוטיוב לא תקין'}), 400
 
-    try:
-        api = YouTubeTranscriptApi()
-        lang = 'iw'
+    # ── נסה yt-dlp קודם (הכי אמין) ─────────────────────────
+    snippets, lang = fetch_via_ytdlp(vid)
+
+    # ── גיבוי: Invidious ─────────────────────────────────────
+    if not snippets:
+        snippets, lang = fetch_via_invidious(vid)
+
+    # ── גיבוי: youtube-transcript-api (עובד רק מ-IP ביתי) ──
+    if not snippets and _YT_API_AVAILABLE:
         try:
-            transcript = api.fetch(vid, languages=['iw', 'he'])
-        except Exception:
+            import http.cookiejar, requests as _req
+            session = _req.Session()
+            if os.path.exists(COOKIES_FILE):
+                jar = http.cookiejar.MozillaCookieJar()
+                try:
+                    jar.load(COOKIES_FILE, ignore_discard=True, ignore_expires=True)
+                    session.cookies = jar
+                except Exception:
+                    pass
+            api = YouTubeTranscriptApi(http_client=session)
+            lang = 'iw'
             try:
-                transcript = api.fetch(vid, languages=['en'])
-                lang = 'en'
+                transcript = api.fetch(vid, languages=['iw', 'he'])
             except Exception:
-                transcript = api.fetch(vid)
-                lang = 'other'
-        snippets = list(transcript)
-    except Exception as e:
-        return jsonify({'error': f'לא ניתן להוריד תמלול: {str(e)}'}), 502
+                try:
+                    transcript = api.fetch(vid, languages=['en'])
+                    lang = 'en'
+                except Exception:
+                    transcript = api.fetch(vid)
+                    lang = 'other'
+            snippets = list(transcript)
+        except Exception:
+            snippets = None
+
+    if not snippets:
+        return jsonify({'error': f'לא ניתן להוריד תמלול — ytdlp={_YTDLP_AVAILABLE}'}), 502
 
     sections = group_into_sections(snippets, section_minutes=5)
     full_text = ' '.join(s['text'] for s in sections)
+
+    user_db.inc_usage(u['id'])
 
     return jsonify({
         'video_id': vid,
@@ -122,6 +554,7 @@ def get_transcript():
 
 
 @app.route('/api/translate', methods=['POST'])
+@login_required
 def translate_sections():
     data = request.json or {}
     sections = data.get('sections', [])
@@ -141,6 +574,7 @@ def translate_sections():
 
 
 @app.route('/api/pptx', methods=['POST'])
+@login_required
 def make_pptx():
     from pptx.util import Emu
     from lxml import etree
@@ -439,6 +873,8 @@ def _build_smart_pptx_bytes(full_text, title):
 
 
 @app.route('/api/smart_pptx', methods=['POST'])
+@login_required
+@pro_required
 def smart_pptx():
     data = request.json or {}
     full_text = data.get('full_text', '').strip()
@@ -455,6 +891,8 @@ def smart_pptx():
 
 
 @app.route('/api/smart_pptx_base64', methods=['POST'])
+@login_required
+@pro_required
 def smart_pptx_base64():
     import base64
     data = request.json or {}
@@ -473,6 +911,8 @@ def smart_pptx_base64():
 
 
 @app.route('/api/js_pptx', methods=['POST'])
+@login_required
+@pro_required
 def js_pptx():
     data = request.json or {}
     full_text = data.get('full_text', '').strip()
@@ -542,6 +982,8 @@ def js_pptx():
 
 
 @app.route('/api/summary', methods=['POST'])
+@login_required
+@pro_required
 def ai_summary():
     data = request.json or {}
     full_text = data.get('full_text', '').strip()
@@ -586,6 +1028,8 @@ def ai_summary():
 
 
 @app.route('/api/opportunities', methods=['POST'])
+@login_required
+@pro_required
 def business_opportunities():
     data = request.json or {}
     full_text = data.get('full_text', '').strip()
@@ -630,6 +1074,83 @@ def business_opportunities():
         return jsonify({'error': str(e)}), 502
 
 
+@app.route('/api/upload_cookies', methods=['POST'])
+@login_required
+def upload_cookies():
+    """העלאת קובץ cookies של YouTube — מאפשר גישה מהשרת הענן"""
+    if 'file' not in request.files:
+        return jsonify({'error': 'לא נבחר קובץ'}), 400
+    f = request.files['file']
+    if not f.filename.endswith('.txt'):
+        return jsonify({'error': 'הקובץ חייב להיות .txt'}), 400
+    f.save(COOKIES_FILE)
+    return jsonify({'success': True, 'message': 'Cookies הועלו בהצלחה!'})
+
+
+@app.route('/api/send_email', methods=['POST'])
+@login_required
+@pro_required
+def send_email():
+    """שלח סיכום למייל דרך Resend"""
+    data = request.json or {}
+    to_email = data.get('email', '').strip()
+    summary  = data.get('summary', '').strip()
+    title    = data.get('title', 'סיכום פרק').strip()
+
+    if not to_email or not summary:
+        return jsonify({'error': 'חסר מייל או סיכום'}), 400
+
+    if not RESEND_KEY:
+        return jsonify({'error': 'מפתח Resend לא מוגדר'}), 500
+
+    # המר סיכום ל-HTML פשוט
+    html_lines = []
+    for line in summary.split('\n'):
+        line = line.strip()
+        if not line:
+            html_lines.append('<br>')
+        elif line.startswith('**') and line.endswith('**'):
+            html_lines.append(f'<h3 style="color:#1a1a2e">{line[2:-2]}</h3>')
+        elif line.startswith('•'):
+            html_lines.append(f'<li style="margin:6px 0">{line[1:].strip()}</li>')
+        else:
+            html_lines.append(f'<p>{line}</p>')
+
+    html_body = f"""
+    <div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px">
+      <div style="background:linear-gradient(135deg,#1a0533,#2d1060);padding:20px;border-radius:10px;margin-bottom:20px">
+        <h1 style="color:#fff;margin:0;font-size:1.4rem">שולחן ארבע</h1>
+        <p style="color:#a78bfa;margin:4px 0 0">סיכום אוטומטי</p>
+      </div>
+      <h2 style="color:#1a0533">{title}</h2>
+      {''.join(html_lines)}
+      <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+      <p style="color:#999;font-size:0.75rem">נוצר על ידי שולחן ארבע · AI Summary</p>
+    </div>"""
+
+    try:
+        resp = http_requests.post(
+            'https://api.resend.com/emails',
+            headers={
+                'Authorization': f'Bearer {RESEND_KEY}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'from': 'שולחן ארבע <onboarding@resend.dev>',
+                'to': [to_email],
+                'subject': f'סיכום: {title}',
+                'html': html_body
+            },
+            timeout=15
+        )
+        if resp.status_code == 200:
+            return jsonify({'success': True})
+        return jsonify({'error': resp.text}), resp.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
-    print("SikumAI - סיכום פרקים -> http://localhost:5002")
-    app.run(debug=False, host='0.0.0.0', port=5002)
+    port = int(os.environ.get('PORT', 5002))
+    print(f"SikumAI -> http://localhost:{port}")
+    app.run(debug=False, host='0.0.0.0', port=port)

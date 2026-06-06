@@ -185,12 +185,63 @@
 </head>
 <body>
 
+<style>
+  .user-bar{background:#111;border-bottom:1px solid #2a2a4a;padding:8px 32px;display:flex;align-items:center;justify-content:space-between;font-size:0.85rem}
+  .user-bar .user-info{display:flex;align-items:center;gap:16px;color:#aaa}
+  .plan-badge{padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;letter-spacing:.04em}
+  .plan-badge.free{background:#2a2a4a;color:#888}
+  .plan-badge.pro{background:#e94560;color:#fff}
+  .usage-bar{display:flex;align-items:center;gap:8px;color:#888;font-size:0.8rem}
+  .usage-track{width:80px;height:6px;background:#2a2a4a;border-radius:3px;overflow:hidden}
+  .usage-fill{height:100%;background:#e94560;border-radius:3px;transition:width .3s}
+  .user-bar .actions{display:flex;align-items:center;gap:12px}
+  .link-btn{color:#aaa;text-decoration:none;font-size:0.82rem;padding:5px 10px;border-radius:6px;border:1px solid #2a2a4a;transition:all .2s}
+  .link-btn:hover{color:#fff;border-color:#555}
+  .upgrade-btn{background:#e94560;color:#fff;border-color:#e94560;font-weight:600}
+  .upgrade-btn:hover{background:#c73652;border-color:#c73652}
+  .pro-locked{position:relative;cursor:pointer}
+  .pro-locked .lock-overlay{position:absolute;inset:0;border-radius:8px;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;gap:6px;color:#fff;font-size:0.8rem;font-weight:600}
+  #upgrade-toast{position:fixed;bottom:24px;right:50%;transform:translateX(50%);background:#1a1a2e;border:1px solid #e94560;border-radius:10px;padding:16px 24px;z-index:999;display:none;text-align:center;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+  #upgrade-toast p{margin-bottom:12px;font-size:0.92rem;color:#eee}
+  #upgrade-toast a{display:inline-block;padding:9px 20px;background:#e94560;color:#fff;border-radius:6px;text-decoration:none;font-weight:700;font-size:0.9rem}
+  .success-banner{background:#0d7a3e;color:#fff;padding:12px;text-align:center;font-weight:600;font-size:0.95rem}
+</style>
+
+{% if upgraded %}
+<div class="success-banner">🎉 ברוך הבא ל-Pro! כל הפיצ'רים פתוחים לך עכשיו.</div>
+{% endif %}
+
+<div class="user-bar">
+  <div class="user-info">
+    <span>שלום, <strong>{{ user['name'] }}</strong></span>
+    <span class="plan-badge {{ user['plan'] }}">{{ 'PRO ✨' if user['plan'] == 'pro' else 'חינמי' }}</span>
+    {% if user['plan'] == 'free' %}
+    <div class="usage-bar">
+      <span>{{ usage }}/{{ free_limit }} סיכומים</span>
+      <div class="usage-track"><div class="usage-fill" style="width:{{ (usage / free_limit * 100)|int }}%"></div></div>
+    </div>
+    {% endif %}
+  </div>
+  <div class="actions">
+    <a href="/pricing" class="link-btn">תמחור</a>
+    {% if user['plan'] == 'free' %}
+    <a href="/pricing" class="link-btn upgrade-btn">שדרג ל-Pro ←</a>
+    {% endif %}
+    <a href="/logout" class="link-btn">יציאה</a>
+  </div>
+</div>
+
 <header>
   <div>
     <h1>🎙️ שולחן 4</h1>
     <span>סיכום פרקים אוטומטי</span>
   </div>
 </header>
+
+<div id="upgrade-toast">
+  <p>🔒 פיצ'ר זה זמין לחברי <strong>Pro</strong> בלבד</p>
+  <a href="/pricing">שדרג עכשיו ב-₪29/חודש ←</a>
+</div>
 
 <div class="container">
 
@@ -229,17 +280,17 @@
       <button class="btn" id="pptx-btn" onclick="downloadPptx()" style="display:none;background:#2a6496">
         📊 מצגת לפי זמן
       </button>
-      <button class="btn" id="smart-pptx-btn" onclick="downloadSmartPptx()" style="display:none;background:#1a7a4a">
-        🧠 מצגת חכמה
+      <button class="btn" id="smart-pptx-btn" onclick="proAction('downloadSmartPptx')" style="display:none;background:#1a7a4a">
+        🧠 מצגת חכמה {% if user['plan'] != 'pro' %}🔒{% endif %}
       </button>
-      <button class="btn" id="js-pptx-btn" onclick="downloadJsPptx()" style="display:none;background:#6d28d9">
-        ✨ מצגת פרמיום
+      <button class="btn" id="js-pptx-btn" onclick="proAction('downloadJsPptx')" style="display:none;background:#6d28d9">
+        ✨ מצגת פרמיום {% if user['plan'] != 'pro' %}🔒{% endif %}
       </button>
-      <button class="btn" id="summary-btn" onclick="generateSummary()" style="display:none;background:#b7410e">
-        🤖 סיכום AI
+      <button class="btn" id="summary-btn" onclick="proAction('generateSummary')" style="display:none;background:#b7410e">
+        🤖 סיכום AI {% if user['plan'] != 'pro' %}🔒{% endif %}
       </button>
-      <button class="btn" id="opps-btn" onclick="findOpportunities()" style="display:none;background:#0d7a3e">
-        💰 הזדמנויות עסקיות
+      <button class="btn" id="opps-btn" onclick="proAction('findOpportunities')" style="display:none;background:#0d7a3e">
+        💰 הזדמנויות {% if user['plan'] != 'pro' %}🔒{% endif %}
       </button>
     </div>
 
@@ -271,6 +322,22 @@
 </div>
 
 <script>
+const IS_PRO = {{ 'true' if user['plan'] == 'pro' else 'false' }};
+
+function showUpgradeToast() {
+  const t = document.getElementById('upgrade-toast');
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 5000);
+}
+
+function proAction(fnName) {
+  if (!IS_PRO) {
+    showUpgradeToast();
+    return;
+  }
+  window[fnName]();
+}
+
 async function loadTranscript() {
   const url = document.getElementById('url-input').value.trim();
   if (!url) return;
@@ -288,6 +355,12 @@ async function loadTranscript() {
     });
     const data = await res.json();
 
+    if (res.status === 403 && data.upgrade) {
+      document.getElementById('error').innerHTML =
+        '❌ ' + data.error + ' — <a href="/pricing" style="color:#e94560">שדרג ל-Pro</a>';
+      document.getElementById('error').style.display = 'block';
+      return;
+    }
     if (!res.ok) {
       throw new Error(data.error || 'שגיאה לא ידועה');
     }
