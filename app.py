@@ -227,6 +227,26 @@ INVIDIOUS_INSTANCES = [
     'https://invidious.flokinet.to',
 ]
 
+def fetch_via_timedtext(video_id):
+    """YouTube timedtext API ישיר — עובד לסרטונים ציבוריים עם כתוביות"""
+    HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept-Language': 'he-IL,he;q=0.9,en;q=0.8',
+        'Referer': 'https://www.youtube.com/',
+    }
+    for lang in ['iw', 'he', 'en', 'en-US']:
+        try:
+            url = f'https://www.youtube.com/api/timedtext?v={video_id}&lang={lang}&fmt=vtt'
+            r = http_requests.get(url, headers=HEADERS, timeout=10)
+            if r.status_code == 200 and len(r.text.strip()) > 100:
+                snippets = _parse_vtt(r.text)
+                if snippets:
+                    print(f"[timedtext] {len(snippets)} snippets ({lang})")
+                    return snippets, lang
+        except Exception as e:
+            print(f"[timedtext] {lang}: {e}")
+    return None, None
+
 def _parse_vtt(vtt_text):
     """ממיר WebVTT לרשימת snippets עם .start ו-.text"""
     class Snippet:
@@ -500,39 +520,33 @@ def get_transcript():
     if not vid:
         return jsonify({'error': 'קישור יוטיוב לא תקין'}), 400
 
-    # ── נסה yt-dlp קודם (הכי אמין) ─────────────────────────
-    snippets, lang = fetch_via_ytdlp(vid)
+    # ── נסה timedtext API ישיר (עובד מ-cloud) ───────────────
+    snippets, lang = fetch_via_timedtext(vid)
+
+    # ── גיבוי: youtube-transcript-api ───────────────────────
+    if not snippets and _YT_API_AVAILABLE:
+        try:
+            api = YouTubeTranscriptApi()
+            for _langs in [['iw', 'he'], ['en']]:
+                try:
+                    transcript = api.fetch(vid, languages=_langs)
+                    snippets = list(transcript)
+                    if snippets:
+                        lang = _langs[0]
+                        break
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[yt-api] {e}")
+            snippets = None
 
     # ── גיבוי: Invidious ─────────────────────────────────────
     if not snippets:
         snippets, lang = fetch_via_invidious(vid)
 
-    # ── גיבוי: youtube-transcript-api (עובד רק מ-IP ביתי) ──
-    if not snippets and _YT_API_AVAILABLE:
-        try:
-            import http.cookiejar, requests as _req
-            session = _req.Session()
-            if os.path.exists(COOKIES_FILE):
-                jar = http.cookiejar.MozillaCookieJar()
-                try:
-                    jar.load(COOKIES_FILE, ignore_discard=True, ignore_expires=True)
-                    session.cookies = jar
-                except Exception:
-                    pass
-            api = YouTubeTranscriptApi(http_client=session)
-            lang = 'iw'
-            try:
-                transcript = api.fetch(vid, languages=['iw', 'he'])
-            except Exception:
-                try:
-                    transcript = api.fetch(vid, languages=['en'])
-                    lang = 'en'
-                except Exception:
-                    transcript = api.fetch(vid)
-                    lang = 'other'
-            snippets = list(transcript)
-        except Exception:
-            snippets = None
+    # ── גיבוי: yt-dlp ────────────────────────────────────────
+    if not snippets:
+        snippets, lang = fetch_via_ytdlp(vid)
 
     if not snippets:
         return jsonify({'error': f'לא ניתן להוריד תמלול — ytdlp={_YTDLP_AVAILABLE}'}), 502
