@@ -1252,6 +1252,18 @@ def send_email():
         return jsonify({'error': str(e)}), 500
 
 
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+
+@app.errorhandler(Exception)
+def unhandled(e):
+    import traceback
+    print(traceback.format_exc())
+    return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5002))
     print(f"SikumAI -> http://localhost:{port}")
