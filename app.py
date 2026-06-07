@@ -217,14 +217,16 @@ except ImportError:
 
 # ── Invidious instances (ניסיון בסדר הזה) ─────────────────
 INVIDIOUS_INSTANCES = [
-    'https://invidious.privacyredirect.com',
-    'https://inv.riverside.rocks',
-    'https://invidious.perennialte.ch',
-    'https://iv.datura.network',
-    'https://invidious.lunar.icu',
+    'https://inv.nadeko.net',
+    'https://invidious.privacydev.net',
+    'https://invidious.jing.rocks',
     'https://yewtu.be',
-    'https://inv.tux.pizza',
-    'https://invidious.flokinet.to',
+    'https://invidious.fdn.fr',
+    'https://yt.cdaut.de',
+    'https://invidious.drgns.space',
+    'https://inv.zzls.xyz',
+    'https://invidious.privacyredirect.com',
+    'https://invidious.perennialte.ch',
 ]
 
 def fetch_via_page_parse(video_id):
@@ -246,6 +248,7 @@ def fetch_via_page_parse(video_id):
             return None, None
 
         page = r.text
+        print(f'[page-parse] status={r.status_code} size={len(page)} consent={"SOCS" in page or "consent" in page.lower()}')
         idx = page.find('"captionTracks"')
         if idx == -1:
             print('[page-parse] no captionTracks in page')
