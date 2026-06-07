@@ -38,6 +38,7 @@ LS_STORE_ID       = os.getenv('LS_STORE_ID', '')
 LS_VARIANT_ID     = os.getenv('LS_VARIANT_ID', '')
 LS_WEBHOOK_SECRET = os.getenv('LS_WEBHOOK_SECRET', '')
 APP_URL           = os.getenv('APP_URL', 'http://localhost:5002')
+SUPADATA_API_KEY  = os.getenv('SUPADATA_API_KEY', '')
 FREE_LIMIT        = 3
 
 user_db.init()
@@ -228,6 +229,46 @@ INVIDIOUS_INSTANCES = [
     'https://invidious.privacyredirect.com',
     'https://invidious.perennialte.ch',
 ]
+
+def fetch_via_supadata(video_id):
+    """Supadata API — שירות חיצוני שעובד מכל שרת"""
+    if not SUPADATA_API_KEY:
+        return None, None
+
+    class Snippet:
+        def __init__(self, start, text):
+            self.start = start
+            self.text  = text
+
+    try:
+        r = http_requests.get(
+            'https://api.supadata.ai/v1/youtube/transcript',
+            params={'url': f'https://www.youtube.com/watch?v={video_id}', 'text': 'false'},
+            headers={'x-api-key': SUPADATA_API_KEY},
+            timeout=30
+        )
+        print(f'[supadata] status={r.status_code}')
+        if r.status_code != 200:
+            print(f'[supadata] error: {r.text[:200]}')
+            return None, None
+
+        data = r.json()
+        content = data.get('content', [])
+        lang = data.get('lang', 'he')
+
+        if not content:
+            print('[supadata] empty content')
+            return None, None
+
+        snippets = [Snippet(item.get('offset', 0) / 1000, item.get('text', ''))
+                    for item in content if item.get('text', '').strip()]
+        print(f'[supadata] {len(snippets)} snippets ({lang})')
+        return snippets, lang
+
+    except Exception as e:
+        print(f'[supadata] error: {e}')
+        return None, None
+
 
 def fetch_via_innertube(video_id):
     """YouTube InnerTube API (Android client) — פחות חסום מ-cloud servers"""
@@ -708,8 +749,12 @@ def get_transcript():
     if not vid:
         return jsonify({'error': 'קישור יוטיוב לא תקין'}), 400
 
-    # ── InnerTube API (Android client) — הכי אמין מ-cloud ────
-    snippets, lang = fetch_via_innertube(vid)
+    # ── Supadata API — הכי אמין, עובד מכל cloud ─────────────
+    snippets, lang = fetch_via_supadata(vid)
+
+    # ── גיבוי: InnerTube API (Android client) ────────────────
+    if not snippets:
+        snippets, lang = fetch_via_innertube(vid)
 
     # ── גיבוי: parse של דף YouTube ───────────────────────────
     if not snippets:
