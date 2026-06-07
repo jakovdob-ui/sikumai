@@ -229,6 +229,107 @@ INVIDIOUS_INSTANCES = [
     'https://invidious.perennialte.ch',
 ]
 
+def fetch_via_innertube(video_id):
+    """YouTube InnerTube API (Android client) — פחות חסום מ-cloud servers"""
+    class Snippet:
+        def __init__(self, start, text):
+            self.start = start
+            self.text  = text
+
+    CLIENTS = [
+        {
+            'name': 'ANDROID',
+            'headers': {
+                'X-YouTube-Client-Name': '3',
+                'X-YouTube-Client-Version': '17.10.35',
+                'User-Agent': 'com.google.android.youtube/17.10.35 (Linux; U; Android 11) gzip',
+                'Content-Type': 'application/json',
+            },
+            'payload': {
+                'context': {'client': {'clientName': 'ANDROID', 'clientVersion': '17.10.35', 'androidSdkVersion': 30, 'hl': 'en', 'gl': 'US'}},
+            },
+            'key': 'AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM394',
+        },
+        {
+            'name': 'TVHTML5',
+            'headers': {
+                'X-YouTube-Client-Name': '7',
+                'X-YouTube-Client-Version': '7.20201028',
+                'User-Agent': 'Mozilla/5.0 (SMART-TV; LINUX; Tizen 5.0) AppleWebKit/538.1',
+                'Content-Type': 'application/json',
+            },
+            'payload': {
+                'context': {'client': {'clientName': 'TVHTML5', 'clientVersion': '7.20201028', 'hl': 'en', 'gl': 'US'}},
+            },
+            'key': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        },
+    ]
+
+    for client in CLIENTS:
+        try:
+            payload = dict(client['payload'])
+            payload['videoId'] = video_id
+            r = http_requests.post(
+                f"https://www.youtube.com/youtubei/v1/player?key={client['key']}",
+                json=payload, headers=client['headers'], timeout=15
+            )
+            if r.status_code != 200:
+                print(f"[innertube/{client['name']}] status {r.status_code}")
+                continue
+
+            data = r.json()
+            captions = (data.get('captions', {})
+                           .get('playerCaptionsTracklistRenderer', {})
+                           .get('captionTracks', []))
+
+            if not captions:
+                print(f"[innertube/{client['name']}] no captionTracks")
+                continue
+
+            chosen = None
+            for lang in ['he', 'iw', 'en']:
+                for cap in captions:
+                    if lang in cap.get('languageCode', '').lower():
+                        chosen = cap
+                        break
+                if chosen:
+                    break
+            if not chosen:
+                chosen = captions[0]
+
+            base_url = chosen.get('baseUrl', '')
+            if not base_url:
+                continue
+
+            sep = '&' if '?' in base_url else '?'
+            for fmt in ['json3', 'vtt']:
+                tr = http_requests.get(base_url + sep + f'fmt={fmt}', timeout=10)
+                if tr.status_code != 200:
+                    continue
+                if fmt == 'json3':
+                    events = tr.json().get('events', [])
+                    snippets = []
+                    for ev in events:
+                        if 'segs' not in ev:
+                            continue
+                        s = ev.get('tStartMs', 0) / 1000
+                        txt = ' '.join(sg.get('utf8', '') for sg in ev['segs']).strip()
+                        if txt:
+                            snippets.append(Snippet(s, txt))
+                else:
+                    snippets = _parse_vtt(tr.text)
+
+                if snippets:
+                    lang_code = chosen.get('languageCode', 'he')
+                    print(f"[innertube/{client['name']}] {len(snippets)} snippets ({lang_code})")
+                    return snippets, lang_code
+
+        except Exception as e:
+            print(f"[innertube/{client['name']}] error: {e}")
+
+    return None, None
+
+
 def fetch_via_page_parse(video_id):
     """מחלץ תמלול מדף YouTube — עובד גם מ-cloud עם CONSENT cookie"""
     HEADERS = {
@@ -607,8 +708,12 @@ def get_transcript():
     if not vid:
         return jsonify({'error': 'קישור יוטיוב לא תקין'}), 400
 
-    # ── נסה parse של דף YouTube (עיקרי — עובד מ-cloud) ──────
-    snippets, lang = fetch_via_page_parse(vid)
+    # ── InnerTube API (Android client) — הכי אמין מ-cloud ────
+    snippets, lang = fetch_via_innertube(vid)
+
+    # ── גיבוי: parse של דף YouTube ───────────────────────────
+    if not snippets:
+        snippets, lang = fetch_via_page_parse(vid)
 
     # ── גיבוי: timedtext API ישיר ────────────────────────────
     if not snippets:
