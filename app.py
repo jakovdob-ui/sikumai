@@ -227,6 +227,90 @@ INVIDIOUS_INSTANCES = [
     'https://invidious.flokinet.to',
 ]
 
+def fetch_via_page_parse(video_id):
+    """מחלץ תמלול מדף YouTube — עובד גם מ-cloud עם CONSENT cookie"""
+    HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cookie': 'SOCS=CAI; CONSENT=YES+1',
+    }
+
+    class Snippet:
+        def __init__(self, start, text):
+            self.start = start
+            self.text  = text
+
+    try:
+        r = http_requests.get(f'https://www.youtube.com/watch?v={video_id}', headers=HEADERS, timeout=15)
+        if r.status_code != 200:
+            return None, None
+
+        page = r.text
+        idx = page.find('"captionTracks"')
+        if idx == -1:
+            print('[page-parse] no captionTracks in page')
+            return None, None
+
+        start = page.find('[', idx)
+        depth, end = 0, start
+        for i, ch in enumerate(page[start:], start):
+            if ch == '[': depth += 1
+            elif ch == ']':
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+
+        tracks = json.loads(page[start:end + 1])
+        if not tracks:
+            return None, None
+
+        chosen = None
+        for lang in ['he', 'iw', 'en']:
+            for t in tracks:
+                if lang in t.get('languageCode', '').lower():
+                    chosen = t
+                    break
+            if chosen:
+                break
+        if not chosen:
+            chosen = tracks[0]
+
+        base_url = chosen.get('baseUrl', '')
+        if not base_url:
+            return None, None
+
+        sep = '&' if '?' in base_url else '?'
+        for fmt in ['vtt', 'json3']:
+            tr = http_requests.get(base_url + sep + f'fmt={fmt}', headers=HEADERS, timeout=10)
+            if tr.status_code != 200:
+                continue
+            if fmt == 'vtt':
+                snippets = _parse_vtt(tr.text)
+                if snippets:
+                    lang_code = chosen.get('languageCode', 'he')
+                    print(f'[page-parse vtt] {len(snippets)} snippets ({lang_code})')
+                    return snippets, lang_code
+            else:
+                events = tr.json().get('events', [])
+                snippets = []
+                for ev in events:
+                    if 'segs' not in ev:
+                        continue
+                    s = ev.get('tStartMs', 0) / 1000
+                    txt = ' '.join(sg.get('utf8', '') for sg in ev['segs']).strip()
+                    if txt:
+                        snippets.append(Snippet(s, txt))
+                if snippets:
+                    lang_code = chosen.get('languageCode', 'he')
+                    print(f'[page-parse json3] {len(snippets)} snippets ({lang_code})')
+                    return snippets, lang_code
+    except Exception as e:
+        print(f'[page-parse] error: {e}')
+
+    return None, None
+
+
 def fetch_via_timedtext(video_id):
     """YouTube timedtext API ישיר — עובד לסרטונים ציבוריים עם כתוביות"""
     HEADERS = {
@@ -520,8 +604,12 @@ def get_transcript():
     if not vid:
         return jsonify({'error': 'קישור יוטיוב לא תקין'}), 400
 
-    # ── נסה timedtext API ישיר (עובד מ-cloud) ───────────────
-    snippets, lang = fetch_via_timedtext(vid)
+    # ── נסה parse של דף YouTube (עיקרי — עובד מ-cloud) ──────
+    snippets, lang = fetch_via_page_parse(vid)
+
+    # ── גיבוי: timedtext API ישיר ────────────────────────────
+    if not snippets:
+        snippets, lang = fetch_via_timedtext(vid)
 
     # ── גיבוי: youtube-transcript-api ───────────────────────
     if not snippets and _YT_API_AVAILABLE:
