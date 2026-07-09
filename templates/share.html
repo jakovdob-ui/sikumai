@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="{{ 'en' if share.lang and share.lang.startswith('en') else 'he' }}" dir="{{ 'ltr' if share.lang and share.lang.startswith('en') else 'rtl' }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% if share.title %}{{ share.title }} — PodSnap AI{% else %}ניתוח פרק — PodSnap{% endif %}</title>
+<meta property="og:title" content="{{ share.title or 'ניתוח פרק' }} — PodSnap AI">
+<meta property="og:description" content="{{ share.summary[:150] if share.summary else 'ניתוח AI של פרק פודקאסט' }}">
+<meta property="og:image" content="https://getpodsnap.com/static/og-image.png">
+<meta property="og:url" content="https://getpodsnap.com/share/{{ share.id }}">
+<meta property="og:type" content="article">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #07090F; --surface: #0D1219; --card: #111827;
+    --purple: #7C3AED; --purple-l: #9F67F5;
+    --text: #E2E8F4; --muted: #556075; --border: #1E2A3A;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Arial, sans-serif; min-height: 100vh; }
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); }
+  .logo { font-size: 1.3rem; font-weight: 700; color: var(--purple-l); text-decoration: none; }
+  .cta-nav { background: var(--purple); color: #fff; border: none; padding: .5rem 1.2rem; border-radius: 8px; font-size: .9rem; cursor: pointer; text-decoration: none; }
+  .container { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .episode-badge { display: flex; align-items: center; gap: .75rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 2rem; }
+  .episode-badge img { width: 80px; height: 56px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+  .episode-badge h1 { font-size: 1.05rem; font-weight: 600; line-height: 1.4; }
+  .section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .section-title { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--purple-l); margin-bottom: 1rem; }
+  .summary-text { white-space: pre-wrap; line-height: 1.75; font-size: .95rem; color: var(--text); }
+  .opps-text { white-space: pre-wrap; line-height: 1.75; font-size: .95rem; color: var(--text); }
+  .cta-box { background: linear-gradient(135deg, #1a0533 0%, #2d1060 100%); border-radius: 16px; padding: 2rem; text-align: center; margin-top: 2rem; }
+  .cta-box h2 { font-size: 1.4rem; margin-bottom: .5rem; }
+  .cta-box p { color: var(--muted); margin-bottom: 1.25rem; }
+  .cta-big { display: inline-block; background: var(--purple); color: #fff; text-decoration: none; padding: .75rem 2rem; border-radius: 10px; font-size: 1rem; font-weight: 600; }
+  .cta-big:hover { background: var(--purple-l); }
+  .powered { text-align: center; margin-top: 1.5rem; font-size: .8rem; color: var(--muted); }
+  .powered a { color: var(--purple-l); text-decoration: none; }
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="/">🎙️ PodSnap</a>
+  <a class="cta-nav" href="/register">{{ 'Try Free' if share.lang and share.lang.startswith('en') else 'נסה בחינם' }}</a>
+</nav>
+
+<div class="container">
+  <div class="episode-badge">
+    <img src="https://img.youtube.com/vi/{{ share.video_id }}/mqdefault.jpg" alt="thumbnail">
+    <h1>{{ share.title or ('Episode Analysis' if share.lang and share.lang.startswith('en') else 'ניתוח פרק') }}</h1>
+  </div>
+
+  {% if share.summary %}
+  <div class="section">
+    <div class="section-title">{{ 'AI Summary' if share.lang and share.lang.startswith('en') else 'סיכום AI' }}</div>
+    <div class="summary-text">{{ share.summary }}</div>
+  </div>
+  {% endif %}
+
+  {% if share.opportunities %}
+  <div class="section">
+    <div class="section-title">{{ 'Business Opportunities' if share.lang and share.lang.startswith('en') else 'הזדמנויות עסקיות' }}</div>
+    <div class="opps-text">{{ share.opportunities }}</div>
+  </div>
+  {% endif %}
+
+  <div class="cta-box">
+    {% if share.lang and share.lang.startswith('en') %}
+    <h2>Analyze your own podcasts</h2>
+    <p>Get AI summaries, business opportunities & LinkedIn posts from any YouTube podcast — in 1 minute.</p>
+    <a class="cta-big" href="/register">Start Free →</a>
+    {% else %}
+    <h2>נתח פרקים משלך</h2>
+    <p>קבל סיכום AI, הזדמנויות עסקיות ופוסט LinkedIn מכל פרק יוטיוב — תוך דקה.</p>
+    <a class="cta-big" href="/register">התחל בחינם →</a>
+    {% endif %}
+  </div>
+
+  <p class="powered">Powered by <a href="/">getpodsnap.com</a></p>
+</div>
+</body>
+</html>

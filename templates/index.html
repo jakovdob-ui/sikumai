@@ -3,25 +3,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>שולחן 4 – סיכום פרקים</title>
+<title>PodSnap – סיכום פודקאסטים</title>
 <style>
+  :root {
+    --primary: #7C3AED;
+    --primary-hover: #6D28D9;
+    --primary-light: rgba(124,58,237,.15);
+    --surface: #1a1a2e;
+    --border: #2a2a4a;
+    --text: #e8e8e8;
+    --muted: #888;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Segoe UI', Arial, sans-serif;
     background: #0f0f0f;
-    color: #e8e8e8;
+    color: var(--text);
     min-height: 100vh;
   }
   header {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    padding: 24px 32px;
+    background: #111827;
+    padding: 18px 32px;
     display: flex;
     align-items: center;
-    gap: 16px;
-    border-bottom: 2px solid #e94560;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--primary);
   }
-  header h1 { font-size: 1.8rem; color: #fff; }
-  header span { font-size: 1rem; color: #aaa; }
+  .header-brand { display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 1.6rem; color: #fff; letter-spacing: -0.02em; }
+  .header-beta {
+    background: var(--primary-light);
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    letter-spacing: .06em;
+  }
+  header .header-sub { font-size: 0.88rem; color: var(--muted); margin-top: 2px; }
 
   .container { max-width: 1000px; margin: 0 auto; padding: 32px 20px; }
 
@@ -44,30 +64,86 @@
     font-size: 1rem;
     direction: ltr;
   }
-  .input-row input:focus { outline: none; border-color: #e94560; }
+  .input-row input:focus { outline: none; border-color: var(--primary); }
   .btn {
-    padding: 12px 24px;
-    background: #e94560;
+    padding: 10px 20px;
+    background: var(--primary);
     color: #fff;
     border: none;
     border-radius: 8px;
-    font-size: 1rem;
+    font-size: 0.92rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
     white-space: nowrap;
   }
-  .btn:hover { background: #c73652; }
-  .btn:disabled { background: #555; cursor: not-allowed; }
+  .btn:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,.3); }
+  .btn:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--muted);
+  }
+  .btn-outline:hover { border-color: var(--primary); color: #fff; background: var(--primary-light); transform: translateY(-1px); box-shadow: none; }
+  .btn-outline.active { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+  #load-btn { padding: 12px 28px; font-size: 1rem; }
 
   #video-embed { margin-bottom: 28px; border-radius: 12px; overflow: hidden; display: none; }
   #video-embed iframe { width: 100%; height: 450px; border: none; }
 
   .stats-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
     display: flex;
-    gap: 16px;
-    margin-bottom: 24px;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .stats-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     flex-wrap: wrap;
   }
+  .stats-divider {
+    width: 1px;
+    height: 32px;
+    background: var(--border);
+    margin: 0 4px;
+  }
+  .toolbar-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .next-banner {
+    background: linear-gradient(135deg, rgba(124,58,237,.12), rgba(5,150,105,.12));
+    border: 1px solid rgba(124,58,237,.3);
+    border-radius: 10px;
+    padding: 12px 18px;
+    margin-bottom: 18px;
+    font-size: 0.9rem;
+    color: #c4b5fd;
+    display: none;
+    animation: fadeIn .4s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+  .loading-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 12px;
+  }
+  .loading-step { opacity: .3; transition: opacity .4s; }
+  .loading-step.active { opacity: 1; color: var(--primary); font-weight: 600; }
   .stat {
     background: #1a1a2e;
     border: 1px solid #2a2a4a;
@@ -75,21 +151,21 @@
     padding: 10px 20px;
     text-align: center;
   }
-  .stat .val { font-size: 1.4rem; font-weight: bold; color: #e94560; }
+  .stat .val { font-size: 1.4rem; font-weight: bold; color: var(--primary); }
   .stat .lbl { font-size: 0.8rem; color: #888; margin-top: 2px; }
 
   .sections-grid { display: flex; flex-direction: column; gap: 14px; }
 
   .section-card {
-    background: #1a1a2e;
-    border: 1px solid #2a2a4a;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 18px 22px;
     cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.15s;
   }
-  .section-card:hover { border-color: #e94560; background: #1f1f38; }
-  .section-card.active { border-color: #e94560; background: #1f1f38; }
+  .section-card:hover { border-color: var(--primary); background: #1f1f38; box-shadow: 0 4px 16px rgba(124,58,237,.15); transform: translateY(-1px); }
+  .section-card.active { border-color: var(--primary); background: #1f1f38; box-shadow: 0 4px 16px rgba(124,58,237,.15); }
 
   .section-header {
     display: flex;
@@ -98,7 +174,7 @@
     margin-bottom: 10px;
   }
   .section-num {
-    background: #e94560;
+    background: var(--primary);
     color: #fff;
     border-radius: 50%;
     width: 32px;
@@ -112,7 +188,7 @@
   }
   .section-time { color: #aaa; font-size: 0.85rem; }
   .section-title { font-weight: bold; font-size: 1rem; flex: 1; }
-  .toggle-icon { color: #e94560; font-size: 1.2rem; transition: transform 0.2s; }
+  .toggle-icon { color: var(--primary); font-size: 1.2rem; transition: transform 0.2s; }
   .section-card.active .toggle-icon { transform: rotate(180deg); }
 
   .section-text {
@@ -135,14 +211,14 @@
   .spinner {
     width: 40px; height: 40px;
     border: 3px solid #2a2a4a;
-    border-top-color: #e94560;
+    border-top-color: var(--primary);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
     margin: 0 auto 16px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  #error { color: #e94560; text-align: center; padding: 20px; display: none; }
+  #error { color: #f87171; text-align: center; padding: 20px; display: none; }
 
   .full-text-section {
     margin-top: 28px;
@@ -154,7 +230,7 @@
   }
   .full-text-section h3 {
     margin-bottom: 12px;
-    color: #e94560;
+    color: var(--primary);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -190,25 +266,31 @@
   .user-bar .user-info{display:flex;align-items:center;gap:16px;color:#aaa}
   .plan-badge{padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;letter-spacing:.04em}
   .plan-badge.free{background:#2a2a4a;color:#888}
-  .plan-badge.pro{background:#e94560;color:#fff}
+  .plan-badge.pro{background:#7C3AED;color:#fff}
   .usage-bar{display:flex;align-items:center;gap:8px;color:#888;font-size:0.8rem}
   .usage-track{width:80px;height:6px;background:#2a2a4a;border-radius:3px;overflow:hidden}
-  .usage-fill{height:100%;background:#e94560;border-radius:3px;transition:width .3s}
+  .usage-fill{height:100%;background:#7C3AED;border-radius:3px;transition:width .3s}
   .user-bar .actions{display:flex;align-items:center;gap:12px}
   .link-btn{color:#aaa;text-decoration:none;font-size:0.82rem;padding:5px 10px;border-radius:6px;border:1px solid #2a2a4a;transition:all .2s}
   .link-btn:hover{color:#fff;border-color:#555}
-  .upgrade-btn{background:#e94560;color:#fff;border-color:#e94560;font-weight:600}
-  .upgrade-btn:hover{background:#c73652;border-color:#c73652}
+  .upgrade-btn{background:#7C3AED;color:#fff;border-color:#7C3AED;font-weight:600}
+  .upgrade-btn:hover{background:#6D28D9;border-color:#6D28D9}
   .pro-locked{position:relative;cursor:pointer}
   .pro-locked .lock-overlay{position:absolute;inset:0;border-radius:8px;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;gap:6px;color:#fff;font-size:0.8rem;font-weight:600}
-  #upgrade-toast{position:fixed;bottom:24px;right:50%;transform:translateX(50%);background:#1a1a2e;border:1px solid #e94560;border-radius:10px;padding:16px 24px;z-index:999;display:none;text-align:center;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+  #upgrade-toast{position:fixed;bottom:24px;right:50%;transform:translateX(50%);background:#1a1a2e;border:1px solid #7C3AED;border-radius:10px;padding:16px 24px;z-index:999;display:none;text-align:center;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
   #upgrade-toast p{margin-bottom:12px;font-size:0.92rem;color:#eee}
-  #upgrade-toast a{display:inline-block;padding:9px 20px;background:#e94560;color:#fff;border-radius:6px;text-decoration:none;font-weight:700;font-size:0.9rem}
+  #upgrade-toast a{display:inline-block;padding:9px 20px;background:#7C3AED;color:#fff;border-radius:6px;text-decoration:none;font-weight:700;font-size:0.9rem}
   .success-banner{background:#0d7a3e;color:#fff;padding:12px;text-align:center;font-weight:600;font-size:0.95rem}
 </style>
 
 {% if upgraded %}
 <div class="success-banner">🎉 ברוך הבא ל-Pro! כל הפיצ'רים פתוחים לך עכשיו.</div>
+{% endif %}
+{% if request.args.get('linkedin_connected') %}
+<div class="success-banner">✅ LinkedIn מחובר בהצלחה! עכשיו תוכל לפרסם פוסטים ישירות.</div>
+{% endif %}
+{% if request.args.get('linkedin_error') %}
+<div style="background:#7f1d1d;color:#fff;padding:12px;text-align:center;font-weight:600">❌ שגיאה בחיבור LinkedIn — {{ request.args.get('detail', 'נסה שוב') }}</div>
 {% endif %}
 
 <div class="user-bar">
@@ -232,10 +314,11 @@
 </div>
 
 <header>
-  <div>
-    <h1>🎙️ שולחן 4</h1>
-    <span>סיכום פרקים אוטומטי</span>
+  <div class="header-brand">
+    <h1>🎙️ PodSnap</h1>
+    <span class="header-beta">BETA</span>
   </div>
+  <div class="header-sub">סיכום פודקאסטים אוטומטי באמצעות AI</div>
 </header>
 
 <div id="upgrade-toast">
@@ -255,7 +338,15 @@
 
   <div id="loading">
     <div class="spinner"></div>
-    <div>מוריד תמלול מיוטיוב...</div>
+    <div class="loading-steps">
+      <span class="loading-step" id="ls1">🔍 מאתר פרק</span>
+      <span style="color:#444">›</span>
+      <span class="loading-step" id="ls2">📥 מוריד תמלול</span>
+      <span style="color:#444">›</span>
+      <span class="loading-step" id="ls3">✂️ מחלק לקטעים</span>
+      <span style="color:#444">›</span>
+      <span class="loading-step" id="ls4">✅ מוכן</span>
+    </div>
   </div>
 
   <div id="error"></div>
@@ -265,33 +356,95 @@
       <iframe id="yt-iframe" allowfullscreen></iframe>
     </div>
 
+    <div id="next-banner" class="next-banner">
+      ✅ הפרק נטען בהצלחה! לחץ על קטע להרחבה, או בחר כלי AI מהסרגל למטה.
+    </div>
+
     <div class="stats-bar">
-      <div class="stat">
-        <div class="val" id="stat-sections">-</div>
-        <div class="lbl">קטעים</div>
+      <!-- שורה 1: סטטיסטיקות + כלי AI -->
+      <div class="stats-row">
+        <div class="stat">
+          <div class="val" id="stat-sections">-</div>
+          <div class="lbl">קטעים</div>
+        </div>
+        <div class="stat">
+          <div class="val" id="stat-duration">-</div>
+          <div class="lbl">משך</div>
+        </div>
+        <div class="stats-divider"></div>
+        <span class="toolbar-label">כלי AI</span>
+        <button class="btn btn-outline" id="translate-btn" onclick="translateToHebrew()" style="display:none">🌐 תרגם</button>
+        <button class="btn btn-outline" id="glossary-btn" onclick="generateGlossary()" style="display:none">📖 מילון מושגים</button>
+        <button class="btn btn-outline" id="summary-btn" onclick="generateSummary()" style="display:none">🤖 סיכום</button>
+        <button class="btn btn-outline" id="pptx-premium-btn" onclick="downloadPremiumPptx()" style="display:none">✨ מצגת</button>
+        <button class="btn btn-outline" id="opps-btn" onclick="findOpportunities()" style="display:none">💰 הזדמנויות</button>
       </div>
-      <div class="stat">
-        <div class="val" id="stat-duration">-</div>
-        <div class="lbl">משך</div>
+      <!-- שורה 2: עזרים -->
+      <div class="stats-row" id="tools-row-2" style="display:none">
+        <div class="stats-divider"></div>
+        <span class="toolbar-label">עזרים</span>
+        <button class="btn btn-outline" id="ask-btn" onclick="toggleAsk()">💬 שאל את הפרק</button>
+        <button class="btn btn-outline" id="history-btn" onclick="showHistory()">🕐 היסטוריה</button>
+        <button class="btn btn-outline" id="share-btn" onclick="shareEpisode()" style="border-color:#10b981;color:#10b981">🔗 שתף ניתוח</button>
+        <div class="stats-divider"></div>
+        <button class="btn btn-outline" id="reset-btn" onclick="resetSession()" style="border-color:#ef4444;color:#ef4444">🔄 חדש</button>
+        {% if is_admin_user %}
+        <div class="stats-divider"></div>
+        <span class="toolbar-label">פרסום</span>
+        {% if li_connected %}
+        <button class="btn btn-outline" onclick="runAgent()" style="border-color:#6d28d9;color:#a78bfa">⚡ הרץ סוכן</button>
+        {% else %}
+        <span style="color:#f87171;font-size:0.85rem">⚠️ LinkedIn לא מחובר</span>
+        {% endif %}
+        {% endif %}
       </div>
-      <button class="btn" id="translate-btn" onclick="translateToHebrew()" style="display:none">
-        🌐 תרגם לעברית
-      </button>
-      <button class="btn" id="pptx-btn" onclick="downloadPptx()" style="display:none;background:#2a6496">
-        📊 מצגת לפי זמן
-      </button>
-      <button class="btn" id="smart-pptx-btn" onclick="proAction('downloadSmartPptx')" style="display:none;background:#1a7a4a">
-        🧠 מצגת חכמה {% if user['plan'] != 'pro' %}🔒{% endif %}
-      </button>
-      <button class="btn" id="js-pptx-btn" onclick="proAction('downloadJsPptx')" style="display:none;background:#6d28d9">
-        ✨ מצגת פרמיום {% if user['plan'] != 'pro' %}🔒{% endif %}
-      </button>
-      <button class="btn" id="summary-btn" onclick="proAction('generateSummary')" style="display:none;background:#b7410e">
-        🤖 סיכום AI {% if user['plan'] != 'pro' %}🔒{% endif %}
-      </button>
-      <button class="btn" id="opps-btn" onclick="proAction('findOpportunities')" style="display:none;background:#0d7a3e">
-        💰 הזדמנויות {% if user['plan'] != 'pro' %}🔒{% endif %}
-      </button>
+    </div>
+
+    <!-- שאל את הפרק -->
+    <div id="ask-section" style="display:none;margin-bottom:24px">
+      <div style="background:#1a1a2e;border:1px solid #6d28d9;border-radius:12px;padding:20px">
+        <h3 style="color:#a78bfa;margin-bottom:14px">💬 שאל את הפרק</h3>
+        <div style="display:flex;gap:10px;margin-bottom:14px">
+          <input id="ask-input" type="text" placeholder="מה השאלה שלך?" style="flex:1;background:#0d0d1a;color:#fff;border:1px solid #6d28d9;border-radius:8px;padding:10px 14px;font-size:0.9rem;direction:rtl">
+          <button onclick="askQuestion()" style="background:#6d28d9;color:#fff;border:none;border-radius:8px;padding:10px 18px;cursor:pointer;font-weight:600">שאל</button>
+        </div>
+        <div id="ask-answer" style="color:#ddd;font-size:0.95rem;line-height:1.8;direction:rtl;display:none;background:#0d0d1a;border-radius:8px;padding:14px"></div>
+      </div>
+    </div>
+
+    <!-- היסטוריה -->
+    <div id="history-section" style="display:none;margin-bottom:24px">
+      <div style="background:#1a1a2e;border:1px solid #374151;border-radius:12px;padding:20px">
+        <h3 style="color:#9CA3AF;margin-bottom:14px">🕐 פרקים שצפיתי</h3>
+        <div id="history-list"></div>
+      </div>
+    </div>
+
+    <div id="li-result-section" style="display:none;margin-bottom:24px">
+      <div style="background:#1a1a2e;border:1px solid #0077B5;border-radius:12px;padding:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3 style="color:#0099E6">in פוסט LinkedIn</h3>
+          <div style="display:flex;gap:10px;align-items:center">
+            <span id="li-style-badge" style="background:#0077B5;color:#fff;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700"></span>
+            <a id="li-result-url" href="#" target="_blank" style="background:#0077B5;color:#fff;border:none;border-radius:7px;padding:7px 14px;text-decoration:none;font-size:0.85rem;font-weight:600">צפה בפוסט ↗</a>
+            <button onclick="copyLinkedInPost()" style="background:#1a3a5c;color:#7ec8e3;border:1px solid #0077B5;border-radius:7px;padding:7px 14px;cursor:pointer;font-size:0.85rem">העתק 📋</button>
+          </div>
+        </div>
+        <textarea id="li-result-text" placeholder="לחץ 'פרסם ל-LinkedIn' כדי לייצר ולפרסם פוסט..." style="width:100%;min-height:200px;background:#0d0d1a;color:#ddd;border:1px solid #0077B5;border-radius:8px;padding:14px;font-size:0.92rem;line-height:1.8;direction:rtl;font-family:inherit;resize:vertical"></textarea>
+        {% if is_admin_user %}
+        <div style="margin-top:12px;text-align:left">
+          <button id="li-publish-inline-btn" onclick="publishToLinkedIn()" style="background:#0077B5;color:#fff;border:none;border-radius:8px;padding:9px 20px;cursor:pointer;font-size:0.9rem;font-weight:600">in פרסם ל-LinkedIn</button>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div id="glossary-section" style="display:none;margin-bottom:24px">
+      <div style="background:#1a1a2e;border:1px solid #0e7490;border-radius:12px;padding:20px">
+        <h3 style="color:#22d3ee;margin-bottom:6px">📖 מילון מושגים לפרק זה</h3>
+        <p style="color:#6b7280;font-size:0.83rem;margin-bottom:18px">המושגים שכדאי להכיר לפני שמיעת הפרק</p>
+        <div id="glossary-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px"></div>
+      </div>
     </div>
 
     <div id="opps-section" style="display:none;margin-bottom:24px">
@@ -301,10 +454,14 @@
       </div>
     </div>
 
+
     <div id="summary-section" style="display:none;margin-bottom:24px">
-      <div style="background:#1a1a2e;border:1px solid #b7410e;border-radius:12px;padding:20px">
-        <h3 style="color:#b7410e;margin-bottom:14px">🤖 סיכום AI</h3>
+      <div style="background:#1a1a2e;border:1px solid #7C3AED;border-radius:12px;padding:20px">
+        <h3 style="color:#a78bfa;margin-bottom:14px">🤖 סיכום AI</h3>
         <div id="summary-content" style="color:#ddd;font-size:0.95rem;line-height:1.8;white-space:pre-wrap;direction:rtl"></div>
+        <div style="margin-top:14px;text-align:left">
+          <button id="email-inline-btn" onclick="sendSummaryEmail()" style="background:#6d28d9;color:#fff;border:none;border-radius:8px;padding:9px 20px;cursor:pointer;font-size:0.9rem;font-weight:600">📧 שלח למייל</button>
+        </div>
       </div>
     </div>
 
@@ -322,7 +479,8 @@
 </div>
 
 <script>
-const IS_PRO = {{ 'true' if user['plan'] == 'pro' else 'false' }};
+const IS_PRO   = {{ 'true' if user['plan'] == 'pro' else 'false' }};
+const IS_ADMIN = {{ 'true' if is_admin_user else 'false' }};
 
 function showUpgradeToast() {
   const t = document.getElementById('upgrade-toast');
@@ -338,6 +496,20 @@ function proAction(fnName) {
   window[fnName]();
 }
 
+function animateLoadingSteps() {
+  const steps = ['ls1','ls2','ls3'];
+  let i = 0;
+  document.querySelectorAll('.loading-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('ls1').classList.add('active');
+  return setInterval(() => {
+    if (i < steps.length - 1) {
+      document.getElementById(steps[i]).classList.remove('active');
+      i++;
+      document.getElementById(steps[i]).classList.add('active');
+    }
+  }, 2000);
+}
+
 async function loadTranscript() {
   const url = document.getElementById('url-input').value.trim();
   if (!url) return;
@@ -345,7 +517,26 @@ async function loadTranscript() {
   document.getElementById('loading').style.display = 'block';
   document.getElementById('results').style.display = 'none';
   document.getElementById('error').style.display = 'none';
+  document.getElementById('next-banner').style.display = 'none';
   document.getElementById('load-btn').disabled = true;
+  const stepInterval = animateLoadingSteps();
+
+  function finishLoading() {
+    clearInterval(stepInterval);
+    document.getElementById('ls3').classList.remove('active');
+    document.getElementById('ls4').classList.add('active');
+    setTimeout(() => {
+      document.getElementById('loading').style.display = 'none';
+      document.querySelectorAll('.loading-step').forEach(s => s.classList.remove('active'));
+    }, 600);
+    document.getElementById('load-btn').disabled = false;
+  }
+
+  function showError(msg) {
+    document.getElementById('error').textContent = '❌ ' + msg;
+    document.getElementById('error').style.display = 'block';
+    finishLoading();
+  }
 
   try {
     const res = await fetch('/api/transcript', {
@@ -357,25 +548,56 @@ async function loadTranscript() {
 
     if (res.status === 403 && data.upgrade) {
       document.getElementById('error').innerHTML =
-        '❌ ' + data.error + ' — <a href="/pricing" style="color:#e94560">שדרג ל-Pro</a>';
+        '❌ ' + data.error + ' — <a href="/pricing" style="color:#a78bfa">שדרג ל-Pro</a>';
       document.getElementById('error').style.display = 'block';
+      finishLoading();
       return;
     }
     if (!res.ok) {
-      throw new Error(data.error || 'שגיאה לא ידועה');
+      showError(data.error || 'שגיאה לא ידועה');
+      return;
     }
 
-    renderResults(data);
+    // poll for job result
+    const jobId = data.job_id;
+    const startTime = Date.now();
+    const maxWait = 3 * 60 * 1000;
+
+    async function pollJob() {
+      if (Date.now() - startTime > maxWait) {
+        showError('הניתוח לוקח יותר מהצפוי — נסה שוב בעוד מספר דקות');
+        return;
+      }
+      try {
+        const jr = await fetch('/api/job/' + jobId);
+        const jd = await jr.json();
+        if (jd.status === 'done') {
+          renderResults(jd.result);
+          finishLoading();
+        } else if (jd.status === 'error') {
+          showError(jd.result && jd.result.error ? jd.result.error : 'שגיאה בעיבוד הפרק');
+        } else {
+          setTimeout(pollJob, 2000);
+        }
+      } catch(e) {
+        setTimeout(pollJob, 2000);
+      }
+    }
+    setTimeout(pollJob, 2000);
+
   } catch (e) {
-    document.getElementById('error').textContent = '❌ ' + e.message;
-    document.getElementById('error').style.display = 'block';
-  } finally {
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('load-btn').disabled = false;
+    showError(e.message);
   }
 }
 
+let currentLang = 'he';
+let currentVideoId = '';
+let currentTitle = '';
+
 function renderResults(data) {
+  currentLang = data.lang || 'he';
+  currentVideoId = data.video_id || '';
+  currentTitle = data.title || '';
   // וידאו
   const embed = document.getElementById('video-embed');
   document.getElementById('yt-iframe').src = `https://www.youtube.com/embed/${data.video_id}`;
@@ -387,16 +609,21 @@ function renderResults(data) {
 
   const translateBtn = document.getElementById('translate-btn');
   translateBtn.style.display = 'inline-block';
-  translateBtn.textContent = '🌐 תרגם לעברית';
+  translateBtn.textContent = '🌐 תרגם';
   translateBtn.disabled = false;
 
-  const pptxBtn = document.getElementById('pptx-btn');
-  pptxBtn.style.display = 'inline-block';
-  const smartBtn = document.getElementById('smart-pptx-btn');
-  smartBtn.style.display = 'inline-block';
-  document.getElementById('js-pptx-btn').style.display = 'inline-block';
-  document.getElementById('summary-btn').style.display = 'inline-block';
-  document.getElementById('opps-btn').style.display = 'inline-block';
+  ['glossary-btn','summary-btn','opps-btn','pptx-premium-btn'].forEach(id => {
+    document.getElementById(id).style.display = 'inline-block';
+  });
+  document.getElementById('tools-row-2').style.display = 'flex';
+  if (IS_ADMIN) {
+    const liSec = document.getElementById('li-result-section');
+    if (liSec) liSec.style.display = 'block';
+  }
+
+  const banner = document.getElementById('next-banner');
+  banner.style.display = 'block';
+  setTimeout(() => banner.style.display = 'none', 5000);
 
   // קטעים
   currentSections = data.sections;
@@ -407,6 +634,13 @@ function renderResults(data) {
   document.getElementById('full-text-section').style.display = 'block';
 
   document.getElementById('results').style.display = 'block';
+
+  // שמירה אוטומטית להיסטוריה
+  fetch('/api/save_episode', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({video_id: data.video_id, title: data.title || 'פרק ללא שם'})
+  }).catch(() => {});
 }
 
 let currentSections = [];
@@ -568,7 +802,7 @@ async function findOpportunities() {
     const res = await fetch('/api/opportunities', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({full_text})
+      body: JSON.stringify({full_text, lang: currentLang})
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
@@ -585,6 +819,249 @@ async function findOpportunities() {
   }
 }
 
+async function sendSummaryEmail() {
+  const btn = document.getElementById('email-inline-btn');
+  const summary = document.getElementById('summary-content')?.textContent?.trim();
+  if (!summary) { alert('אין סיכום לשליחה — לחץ קודם על "סיכום"'); return; }
+
+  const email = prompt('לאיזה מייל לשלוח?', '{{ user.email }}');
+  if (!email) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ שולח...';
+  try {
+    const title = document.getElementById('video-title')?.textContent || 'סיכום פרק';
+    const res = await fetch('/api/send_email', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, summary, title})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    btn.textContent = '✅ נשלח!';
+  } catch (e) {
+    btn.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { if (btn) btn.textContent = '📧 שלח למייל'; }, 3000);
+  }
+}
+
+function toggleAsk() {
+  const s = document.getElementById('ask-section');
+  s.style.display = s.style.display === 'none' ? 'block' : 'none';
+  if (s.style.display === 'block') {
+    document.getElementById('ask-input').focus();
+    s.scrollIntoView({behavior: 'smooth'});
+  }
+}
+
+async function askQuestion() {
+  const q = document.getElementById('ask-input').value.trim();
+  if (!q) return;
+  const ans = document.getElementById('ask-answer');
+  ans.style.display = 'block';
+  ans.textContent = '⏳ מחפש בפרק...';
+  const full_text = document.getElementById('full-text-area').value;
+  try {
+    const res = await fetch('/api/ask', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({full_text, question: q, lang: currentLang})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    ans.textContent = data.answer;
+  } catch(e) {
+    ans.textContent = '❌ ' + e.message;
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.activeElement.id === 'ask-input') askQuestion();
+});
+
+async function showHistory() {
+  const sec = document.getElementById('history-section');
+  if (sec.style.display === 'block') { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  sec.scrollIntoView({behavior: 'smooth'});
+  const list = document.getElementById('history-list');
+  list.innerHTML = '<p style="color:#888">טוען...</p>';
+  try {
+    const res = await fetch('/api/history');
+    const data = await res.json();
+    if (!data.episodes?.length) {
+      list.innerHTML = '<p style="color:#888">אין פרקים שמורים עדיין.</p>';
+      return;
+    }
+    list.innerHTML = data.episodes.map(ep => `
+      <div onclick="loadFromHistory('${ep.video_id}')" style="background:#0d0d1a;border:1px solid #374151;border-radius:9px;padding:13px 16px;margin-bottom:10px;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='#6d28d9'" onmouseout="this.style.borderColor='#374151'">
+        <div style="color:#e2e8f0;font-weight:600;margin-bottom:4px">${ep.title}</div>
+        <div style="color:#6B7280;font-size:0.78rem">${new Date(ep.created_at).toLocaleDateString('he-IL')}</div>
+      </div>`).join('');
+  } catch(e) {
+    list.innerHTML = '<p style="color:#f87171">שגיאה בטעינה</p>';
+  }
+}
+
+function loadFromHistory(videoId) {
+  document.getElementById('url-input').value = `https://www.youtube.com/watch?v=${videoId}`;
+  document.getElementById('history-section').style.display = 'none';
+  document.getElementById('load-btn').click();
+}
+
+
+function copyLinkedInPost() {
+  const ta = document.getElementById('li-result-text');
+  ta.select();
+  navigator.clipboard.writeText(ta.value);
+}
+
+async function runAgent() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ מריץ...';
+  try {
+    const res = await fetch('/api/admin/run-agent', {method:'POST'});
+    const data = await res.json();
+    if (data.success) {
+      alert('✅ הסוכן רץ!\n\n' + (data.log || '').slice(-500));
+    } else {
+      alert('❌ ' + (data.error || 'שגיאה'));
+    }
+  } catch(e) {
+    alert('❌ ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ הרץ סוכן';
+  }
+}
+
+function resetSession() {
+  if (!confirm('לנקות את כל התוצאות ולהתחיל פרק חדש?')) return;
+  currentSections = [];
+  const hide = id => { const el = document.getElementById(id); if (el) { el.style.display = 'none'; } };
+  const clear = id => { const el = document.getElementById(id); if (el) { el.value !== undefined ? el.value = '' : el.innerHTML = ''; } };
+  hide('results'); hide('summary-section'); hide('glossary-section');
+  hide('opps-section'); hide('li-result-section');
+  hide('ask-section'); hide('history-section'); hide('video-embed');
+  hide('tools-row-2');
+  clear('url-input'); clear('full-text-area'); clear('summary-content');
+  clear('glossary-grid'); clear('opps-content');
+  clear('li-result-text'); clear('ask-answer'); clear('ask-input');
+  ['translate-btn','glossary-btn','summary-btn','pptx-premium-btn','opps-btn'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  document.getElementById('stat-sections') && (document.getElementById('stat-sections').textContent = '—');
+  document.getElementById('stat-duration') && (document.getElementById('stat-duration').textContent = '—');
+}
+
+
+async function downloadPremiumPptx() {
+  const btn = document.getElementById('pptx-premium-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ בונה מצגת...';
+  try {
+    const full_text = document.getElementById('full-text-area').value;
+    const title = document.getElementById('video-title')?.textContent || 'סיכום פרק';
+    const res = await fetch('/api/premium_pptx', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({full_text, title})
+    });
+    if (!res.ok) {
+      const d = await res.json();
+      throw new Error(d.error || 'שגיאה');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'presentation.pptx';
+    a.click();
+    URL.revokeObjectURL(url);
+    btn.textContent = '✓ הורדה!';
+  } catch(e) {
+    btn.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '✨ מצגת'; }, 3000);
+  }
+}
+
+async function publishToLinkedIn() {
+  const btn = document.getElementById('li-publish-inline-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ מפרסם...'; }
+
+  try {
+    const full_text = document.getElementById('full-text-area').value;
+    const video_id = document.getElementById('yt-iframe').src.split('/').pop();
+    const res = await fetch('/api/linkedin/post', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({full_text, video_id, lang: currentLang})
+    });
+    const data = await res.json();
+
+    if (data.connect) {
+      window.location.href = '/linkedin/connect';
+      return;
+    }
+    if (!res.ok) throw new Error(data.error);
+
+    const sec = document.getElementById('li-result-section');
+    document.getElementById('li-result-text').value = data.post;
+    document.getElementById('li-result-url').href = data.url || '#';
+    document.getElementById('li-result-url').style.display = data.url ? 'inline-block' : 'none';
+    document.getElementById('li-style-badge').textContent = `סגנון ${data.style}`;
+    sec.style.display = 'block';
+    sec.scrollIntoView({behavior: 'smooth'});
+    if (btn) btn.textContent = '✓ פורסם!';
+  } catch(e) {
+    if (btn) btn.textContent = '❌ ' + e.message;
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      setTimeout(() => { btn.textContent = 'in פרסם ל-LinkedIn'; }, 3000);
+    }
+  }
+}
+
+async function generateGlossary() {
+  const btn = document.getElementById('glossary-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ מחלץ מושגים...';
+
+  try {
+    const full_text = document.getElementById('full-text-area').value;
+    const res = await fetch('/api/glossary', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({full_text, lang: currentLang})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    const grid = document.getElementById('glossary-grid');
+    grid.innerHTML = data.terms.map(t => `
+      <div style="background:#0d1f2d;border:1px solid #164e63;border-radius:10px;padding:16px">
+        <div style="color:#22d3ee;font-weight:700;font-size:1rem;margin-bottom:8px">${t.term}</div>
+        <div style="color:#cbd5e1;font-size:0.88rem;line-height:1.65">${t.explanation}</div>
+      </div>
+    `).join('');
+
+    document.getElementById('glossary-section').style.display = 'block';
+    document.getElementById('glossary-section').scrollIntoView({behavior: 'smooth'});
+    btn.textContent = '✓ מוכן!';
+  } catch (e) {
+    btn.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '📖 מילון מושגים'; }, 3000);
+  }
+}
+
 async function generateSummary() {
   const btn = document.getElementById('summary-btn');
   btn.disabled = true;
@@ -595,7 +1072,7 @@ async function generateSummary() {
     const res = await fetch('/api/summary', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({full_text})
+      body: JSON.stringify({full_text, lang: currentLang})
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
@@ -621,6 +1098,50 @@ function copyText() {
   setTimeout(() => btn.textContent = 'העתק הכל', 2000);
 }
 
+async function shareEpisode() {
+  const btn = document.getElementById('share-btn');
+  const summary = document.getElementById('summary-content')?.textContent?.trim() || '';
+  const opportunities = document.getElementById('opps-content')?.textContent?.trim() || '';
+
+  if (!summary && !opportunities) {
+    alert('כדי לשתף, צור קודם סיכום — לחץ על "🤖 סיכום AI"');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ יוצר לינק...';
+
+  try {
+    const res = await fetch('/api/share', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        video_id: currentVideoId,
+        title: currentTitle,
+        summary,
+        opportunities,
+        lang: currentLang
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'שגיאה');
+
+    const fullUrl = window.location.origin + data.url;
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      btn.textContent = '✅ קישור הועתק!';
+    } catch (_) {
+      prompt('העתק את הקישור:', fullUrl);
+      btn.textContent = '✅ קישור מוכן!';
+    }
+  } catch(e) {
+    btn.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '🔗 שתף ניתוח'; }, 3000);
+  }
+}
+
 // טען אוטומטית אם יש URL בפרמטר
 window.onload = () => {
   const params = new URLSearchParams(location.search);
@@ -631,6 +1152,13 @@ window.onload = () => {
   }
 };
 </script>
+
+<footer style="text-align:center;padding:20px;margin-top:40px;border-top:1px solid #1e1e3a;font-size:0.78rem;color:#444">
+  <a href="/terms" style="color:#555;text-decoration:none;margin:0 10px" onmouseover="this.style.color='#a78bfa'" onmouseout="this.style.color='#555'">תנאי שימוש</a>
+  ·
+  <a href="/privacy" style="color:#555;text-decoration:none;margin:0 10px" onmouseover="this.style.color='#a78bfa'" onmouseout="this.style.color='#555'">מדיניות פרטיות</a>
+  <br><span style="color:#333;margin-top:6px;display:block">© 2026 PodSnap</span>
+</footer>
 
 </body>
 </html>

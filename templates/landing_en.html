@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PodSnap — AI Podcast Summarizer</title>
+<meta name="description" content="Turn any YouTube podcast into a summary, business opportunities & LinkedIn post — in 1 minute.">
+<meta property="og:title" content="PodSnap — AI Podcast Summarizer">
+<meta property="og:description" content="Turn any YouTube podcast into a summary, business opportunities & LinkedIn post — in 1 minute. Free.">
+<meta property="og:image" content="https://getpodsnap.com/static/og-image.png">
+<meta property="og:url" content="https://getpodsnap.com/en">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PodSnap — AI Podcast Analysis">
+<meta name="twitter:description" content="Turn any YouTube podcast into a summary, business opportunities & LinkedIn post — in 1 minute.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #07090F;
+    --surface:  #0D1219;
+    --card:     #111827;
+    --purple:   #7C3AED;
+    --purple-l: #9F67F5;
+    --amber:    #F59E0B;
+    --amber-l:  #FCD34D;
+    --text:     #E2E8F4;
+    --muted:    #556075;
+    --border:   #1E2A3A;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 1rem;
+    line-height: 1.65;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,58,237,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,58,237,.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 48px;
+    background: rgba(7,9,15,.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-brand { display: flex; align-items: center; gap: 10px; font-size: 1.25rem; font-weight: 800; color: #fff; text-decoration: none; }
+  .nav-brand span { color: var(--purple-l); }
+  .nav-links { display: flex; align-items: center; gap: 24px; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: .9rem; transition: color .2s; }
+  .nav-links a:hover { color: var(--text); }
+  .btn-nav { padding: 9px 22px; background: var(--purple); color: #fff; border: none; border-radius: 8px; font-size: .9rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: background .2s, transform .15s; }
+  .btn-nav:hover { background: var(--purple-l); transform: translateY(-1px); }
+  .lang-switch { color: var(--muted); font-size: .82rem; text-decoration: none; }
+  .lang-switch:hover { color: var(--text); }
+
+  /* HERO */
+  .hero {
+    position: relative; z-index: 1;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 48px; align-items: center;
+    max-width: 1200px; margin: 0 auto; padding: 96px 48px 80px;
+  }
+  .hero::before {
+    content: ''; position: absolute; top: -100px; left: -200px;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(124,58,237,.18) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.35);
+    border-radius: 20px; padding: 5px 14px; font-size: .78rem; font-weight: 700;
+    color: var(--purple-l); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 24px;
+  }
+  .hero h1 { font-size: clamp(2.2rem, 4.5vw, 3.6rem); font-weight: 900; line-height: 1.15; text-wrap: balance; margin-bottom: 20px; letter-spacing: -.02em; }
+  .hero h1 em { font-style: normal; color: var(--amber); }
+  .hero-sub { font-size: 1.05rem; color: #8CA0BB; line-height: 1.7; margin-bottom: 36px; max-width: 480px; }
+  .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; }
+  .btn-primary {
+    padding: 14px 32px; background: var(--purple); color: #fff; border: none;
+    border-radius: 10px; font-size: 1.05rem; font-weight: 800; cursor: pointer;
+    text-decoration: none; display: inline-block; position: relative; overflow: hidden;
+    transition: transform .15s, box-shadow .2s;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,58,237,.4); }
+  .btn-ghost {
+    padding: 14px 24px; background: transparent; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 10px; font-size: 1rem; cursor: pointer; text-decoration: none; display: inline-block;
+    transition: border-color .2s, color .2s;
+  }
+  .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+  .hero-note { margin-top: 16px; font-size: .82rem; color: var(--muted); }
+  .hero-note strong { color: var(--amber); }
+
+  /* MOCK WINDOW */
+  .hero-visual { position: relative; }
+  .mock-window { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,.5); }
+  .mock-titlebar { background: var(--surface); padding: 12px 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .dot-r { background: #FF5F57; } .dot-y { background: #FEBC2E; } .dot-g { background: #28C840; }
+  .mock-url { flex: 1; background: rgba(0,0,0,.3); border-radius: 6px; padding: 4px 10px; font-size: .74rem; color: var(--muted); text-align: center; }
+  .mock-body { padding: 20px; }
+  .mock-input-row { display: flex; gap: 8px; margin-bottom: 20px; }
+  .mock-input { flex: 1; background: rgba(0,0,0,.3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--muted); font-size: .82rem; }
+  .mock-btn { background: var(--purple); color: #fff; border: none; border-radius: 8px; padding: 10px 18px; font-size: .82rem; font-weight: 700; white-space: nowrap; }
+  .mock-output { display: flex; flex-direction: column; gap: 10px; }
+  .mock-card { background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .mock-card-label { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+  .mock-card-label.purple { color: var(--purple-l); } .mock-card-label.amber { color: var(--amber); } .mock-card-label.cyan { color: #22D3EE; }
+  .mock-lines { display: flex; flex-direction: column; gap: 5px; }
+  .mock-line { height: 7px; background: var(--border); border-radius: 4px; animation: shimmer 2s ease-in-out infinite; }
+  .mock-line:nth-child(1) { width: 90%; } .mock-line:nth-child(2) { width: 75%; animation-delay: .15s; } .mock-line:nth-child(3) { width: 85%; animation-delay: .3s; } .mock-line:nth-child(4) { width: 60%; animation-delay: .45s; }
+  @keyframes shimmer { 0%, 100% { opacity: .4; } 50% { opacity: .9; } }
+  .mock-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .mock-tag { padding: 3px 10px; border-radius: 20px; font-size: .7rem; font-weight: 700; }
+  .mock-tag.purple { background: rgba(124,58,237,.2); color: var(--purple-l); }
+  .mock-tag.amber { background: rgba(245,158,11,.15); color: var(--amber-l); }
+
+  /* STATS */
+  .stats-bar { position: relative; z-index: 1; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: rgba(13,18,25,.6); }
+  .stats-inner { max-width: 1200px; margin: 0 auto; padding: 28px 48px; display: flex; justify-content: space-around; gap: 24px; flex-wrap: wrap; }
+  .stat-item { text-align: center; }
+  .stat-val { font-size: 2rem; font-weight: 900; color: #fff; font-variant-numeric: tabular-nums; display: block; }
+  .stat-val span { color: var(--amber); }
+  .stat-lbl { font-size: .82rem; color: var(--muted); margin-top: 2px; }
+
+  /* SECTIONS */
+  .section { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 96px 48px; }
+  .section-eyebrow { font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--amber); margin-bottom: 12px; }
+  .section-title { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 900; line-height: 1.2; text-wrap: balance; margin-bottom: 48px; }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--border); border-radius: 16px; overflow: hidden; }
+  .step { background: var(--surface); padding: 40px 32px; }
+  .step-num { width: 40px; height: 40px; border-radius: 10px; background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.3); display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 900; color: var(--purple-l); margin-bottom: 20px; }
+  .step h3 { font-size: 1.15rem; font-weight: 800; margin-bottom: 10px; color: #fff; }
+  .step p { color: #7A8FA8; font-size: .92rem; line-height: 1.65; }
+
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .feat-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 28px 24px; transition: border-color .2s, transform .2s; position: relative; overflow: hidden; }
+  .feat-card:hover { border-color: rgba(124,58,237,.4); transform: translateY(-3px); }
+  .feat-icon { font-size: 1.6rem; margin-bottom: 14px; display: block; }
+  .feat-card h3 { font-size: 1rem; font-weight: 800; color: #fff; margin-bottom: 8px; }
+  .feat-card p { font-size: .88rem; color: #6B8096; line-height: 1.6; }
+  .feat-card.highlight { border-color: rgba(245,158,11,.3); background: linear-gradient(135deg, rgba(245,158,11,.06) 0%, var(--card) 60%); }
+
+  /* PRICING */
+  .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 720px; margin: 0 auto; }
+  .price-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 36px 32px; }
+  .price-card.pro { border-color: var(--purple); background: linear-gradient(160deg, rgba(124,58,237,.12) 0%, var(--card) 60%); position: relative; }
+  .pro-badge { position: absolute; top: -12px; right: 32px; background: var(--amber); color: #000; padding: 3px 14px; border-radius: 20px; font-size: .72rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+  .price-name { font-size: .8rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .price-amount { font-size: 2.6rem; font-weight: 900; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 4px; }
+  .price-amount sub { font-size: 1.1rem; font-weight: 600; color: var(--muted); }
+  .price-period { font-size: .82rem; color: var(--muted); margin-bottom: 28px; }
+  .price-items { list-style: none; margin-bottom: 32px; display: flex; flex-direction: column; gap: 10px; }
+  .price-items li { font-size: .9rem; color: #8CA0BB; display: flex; align-items: flex-start; gap: 8px; }
+  .price-items li::before { content: '✓'; color: var(--purple-l); font-weight: 900; flex-shrink: 0; margin-top: 1px; }
+  .price-card.pro .price-items li::before { color: var(--amber); }
+  .btn-price { display: block; width: 100%; padding: 13px; text-align: center; border-radius: 10px; font-size: .95rem; font-weight: 800; cursor: pointer; text-decoration: none; transition: all .2s; }
+  .btn-price.free { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-price.free:hover { border-color: var(--purple); color: var(--text); }
+  .btn-price.pro-btn { background: var(--purple); border: 1px solid var(--purple); color: #fff; }
+  .btn-price.pro-btn:hover { background: var(--purple-l); transform: translateY(-1px); }
+
+  /* CTA BANNER */
+  .cta-banner { position: relative; z-index: 1; margin: 0 48px 96px; border-radius: 20px; background: linear-gradient(135deg, rgba(124,58,237,.25) 0%, rgba(245,158,11,.1) 100%); border: 1px solid rgba(124,58,237,.3); padding: 64px 48px; text-align: center; overflow: hidden; }
+  .cta-banner h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 900; text-wrap: balance; margin-bottom: 14px; }
+  .cta-banner p { color: #8CA0BB; margin-bottom: 32px; font-size: 1rem; }
+  .cta-banner .btn-primary { font-size: 1.1rem; padding: 16px 40px; }
+
+  /* FOOTER */
+  footer { position: relative; z-index: 1; border-top: 1px solid var(--border); padding: 32px 48px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .footer-brand { font-size: 1rem; font-weight: 800; color: #fff; }
+  .footer-brand span { color: var(--purple-l); }
+  .footer-links { display: flex; gap: 20px; }
+  .footer-links a { color: var(--muted); font-size: .85rem; text-decoration: none; transition: color .2s; }
+  .footer-links a:hover { color: var(--text); }
+  .footer-copy { font-size: .82rem; color: var(--muted); }
+
+  @media (max-width: 768px) {
+    nav { padding: 14px 20px; }
+    .hero { grid-template-columns: 1fr; padding: 48px 20px; }
+    .hero-visual { display: none; }
+    .steps { grid-template-columns: 1fr; }
+    .features-grid { grid-template-columns: 1fr; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .section { padding: 60px 20px; }
+    .cta-banner { margin: 0 20px 60px; padding: 48px 24px; }
+    footer { padding: 24px 20px; flex-direction: column; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/en">🎙️ Pod<span>Snap</span></a>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="/" class="lang-switch">🇮🇱 עברית</a>
+    <a href="/login" class="btn-nav">Sign In</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div>
+    <div class="hero-badge">✨ AI-Powered · Instant · Free to start</div>
+    <h1>Your podcast,<br><em>analyzed in seconds</em></h1>
+    <p class="hero-sub">
+      Paste any YouTube episode link — get an AI summary, business opportunities, glossary, and a ready-to-post LinkedIn post. All in under a minute.
+    </p>
+    <div class="hero-cta">
+      <a href="/register" class="btn-primary">Start Free →</a>
+      <a href="#how" class="btn-ghost">See how it works</a>
+    </div>
+    <p class="hero-note"><strong>Free</strong> · No credit card · Works on any YouTube podcast</p>
+  </div>
+
+  <div class="hero-visual">
+    <div class="mock-window">
+      <div class="mock-titlebar">
+        <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+        <div class="mock-url">getpodsnap.com</div>
+      </div>
+      <div class="mock-body">
+        <div class="mock-input-row">
+          <div class="mock-input">youtube.com/watch?v=dQw4w9WgXcQ</div>
+          <button class="mock-btn">Analyze</button>
+        </div>
+        <div class="mock-output">
+          <div class="mock-card">
+            <div class="mock-card-label purple">AI Summary</div>
+            <div class="mock-lines">
+              <div class="mock-line"></div><div class="mock-line"></div>
+              <div class="mock-line"></div><div class="mock-line"></div>
+            </div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-label amber">Business Opportunities</div>
+            <div class="mock-lines">
+              <div class="mock-line"></div><div class="mock-line"></div><div class="mock-line"></div>
+            </div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-label cyan">LinkedIn Post</div>
+            <div class="mock-lines">
+              <div class="mock-line"></div><div class="mock-line"></div>
+            </div>
+            <div class="mock-tags">
+              <span class="mock-tag purple">#AI</span>
+              <span class="mock-tag amber">#Podcasts</span>
+              <span class="mock-tag purple">#Growth</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item"><span class="stat-val">1<span>min</span></span><div class="stat-lbl">Average analysis time</div></div>
+    <div class="stat-item"><span class="stat-val">4<span>+</span></span><div class="stat-lbl">AI tools per episode</div></div>
+    <div class="stat-item"><span class="stat-val">100<span>%</span></span><div class="stat-lbl">YouTube compatible</div></div>
+    <div class="stat-item"><span class="stat-val">🇮🇱<span>+</span>🌍</span><div class="stat-lbl">Hebrew & English output</div></div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="how">
+  <div class="section-eyebrow">How it works</div>
+  <h2 class="section-title">Three steps, one minute</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Paste a YouTube link</h3>
+      <p>Copy any YouTube podcast URL — episodes in Hebrew or English. PodSnap supports all durations, any channel.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>AI analyzes the episode</h3>
+      <p>Our AI transcribes, summarizes, and extracts the key insights, terms, and business opportunities from the episode.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Get everything instantly</h3>
+      <p>Summary, opportunities, glossary, and a LinkedIn post — all ready. Share, copy, or post directly from the app.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="features" style="padding-top: 0">
+  <div class="section-eyebrow">Features</div>
+  <h2 class="section-title">Everything you need from a podcast</h2>
+  <div class="features-grid">
+    <div class="feat-card">
+      <span class="feat-icon">🤖</span>
+      <h3>AI Summary</h3>
+      <p>Get a clean, concise summary of any episode — the main ideas in 1 minute of reading instead of 1 hour of listening.</p>
+    </div>
+    <div class="feat-card highlight">
+      <span class="feat-icon">💰</span>
+      <h3>Business Opportunities</h3>
+      <p>PodSnap identifies actionable business ideas, market gaps, and startup angles hidden inside each episode.</p>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">in</span>
+      <h3>LinkedIn Post</h3>
+      <p>One click generates a professional LinkedIn post in your style — ready to publish. Available in Hebrew and English.</p>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">📖</span>
+      <h3>Glossary</h3>
+      <p>Every episode comes with a glossary of key terms — perfect for sharing with your team or posting online.</p>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">💬</span>
+      <h3>Ask the Episode</h3>
+      <p>Chat with the episode's content — ask any question and get an answer sourced from the transcript.</p>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🔗</span>
+      <h3>Public Share Page</h3>
+      <p>Share the AI analysis with anyone — a beautiful public page with the summary and opportunities, no login needed.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="pricing" style="padding-top: 0">
+  <div class="section-eyebrow">Pricing</div>
+  <h2 class="section-title" style="text-align:center">Simple, honest pricing</h2>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="price-name">Free</div>
+      <div class="price-amount">$0<sub>/mo</sub></div>
+      <div class="price-period">Forever free, no credit card</div>
+      <ul class="price-items">
+        <li>3 episode analyses per month</li>
+        <li>AI summary</li>
+        <li>Glossary of terms</li>
+        <li>Public share page</li>
+      </ul>
+      <a href="/register" class="btn-price free">Start Free</a>
+    </div>
+    <div class="price-card pro">
+      <div class="pro-badge">Most popular</div>
+      <div class="price-name">Pro</div>
+      <div class="price-amount">$8<sub>/mo</sub></div>
+      <div class="price-period">Billed monthly · Cancel anytime</div>
+      <ul class="price-items">
+        <li>Unlimited episodes</li>
+        <li>Business opportunities</li>
+        <li>LinkedIn post generator</li>
+        <li>Ask the episode (AI chat)</li>
+        <li>PowerPoint export</li>
+        <li>Email summary</li>
+      </ul>
+      <a href="/register" class="btn-price pro-btn">Get Pro →</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<div class="cta-banner">
+  <h2>Start analyzing podcasts in 60 seconds</h2>
+  <p>Free forever. No credit card required.</p>
+  <a href="/register" class="btn-primary">Create Free Account →</a>
+</div>
+
+<footer>
+  <div class="footer-brand">🎙️ Pod<span>Snap</span></div>
+  <div class="footer-links">
+    <a href="/">עברית 🇮🇱</a>
+    <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
+  </div>
+  <div class="footer-copy">© 2025 PodSnap · AI Podcast Summarizer</div>
+</footer>
+
+</body>
+</html>
