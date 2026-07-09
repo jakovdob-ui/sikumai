@@ -37,7 +37,7 @@ app.secret_key = os.getenv('SECRET_KEY', 'shulchan4-secret-2026')
 
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-limiter = Limiter(app, key_func=get_remote_address, default_limits=["200/minute"])
+limiter = Limiter(get_remote_address, app=app, default_limits=["200 per minute"])
 
 _transcript_cache = {}
 _transcript_cache_lock = threading.Lock()
