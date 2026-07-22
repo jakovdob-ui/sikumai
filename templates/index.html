@@ -257,6 +257,18 @@
     font-size: 0.85rem;
   }
   .copy-btn:hover { background: #3a3a5a; color: #fff; }
+  .ptab {
+    padding: 7px 14px;
+    background: #1a1a2e;
+    color: #888;
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+  .ptab:hover { border-color: #10b981; color: #34d399; }
+  .ptab.active { background: #052e16; border-color: #10b981; color: #34d399; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -378,7 +390,10 @@
         <button class="btn btn-outline" id="summary-btn" onclick="generateSummary()" style="display:none">🤖 סיכום</button>
         <button class="btn btn-outline" id="pptx-premium-btn" onclick="downloadPremiumPptx()" style="display:none">✨ מצגת</button>
         <button class="btn btn-outline" id="opps-btn" onclick="findOpportunities()" style="display:none">💰 הזדמנויות</button>
+        <button class="btn btn-outline" id="slides-btn" onclick="extractSlides()" style="display:none;border-color:#3b82f6;color:#3b82f6">🖼️ שקופיות</button>
+        <button class="btn btn-outline" id="platforms-btn" onclick="getAllPlatforms()" style="display:none;border-color:#10b981;color:#10b981">🌐 כל הפלטפורמות</button>
       </div>
+      <div id="mode-toggle-row" style="display:none"></div>
       <!-- שורה 2: עזרים -->
       <div class="stats-row" id="tools-row-2" style="display:none">
         <div class="stats-divider"></div>
@@ -454,6 +469,55 @@
       </div>
     </div>
 
+
+    <div id="platforms-section" style="display:none;margin-bottom:24px">
+      <div style="background:#1a1a2e;border:1px solid #10b981;border-radius:12px;padding:20px">
+        <h3 style="color:#34d399;margin-bottom:16px">🌐 תוכן לפלטפורמות</h3>
+        <div id="platforms-loading" style="text-align:center;padding:24px;color:#aaa">
+          <div class="spinner" style="margin:0 auto 12px"></div>
+          <div>מייצר תוכן לכל הפלטפורמות...</div>
+        </div>
+        <div id="platforms-body" style="display:none">
+          <div id="platform-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+            <button class="ptab active" onclick="switchPlatformTab('instagram',this)">📸 Instagram</button>
+            <button class="ptab" onclick="switchPlatformTab('tiktok',this)">🎵 TikTok</button>
+            <button class="ptab" onclick="switchPlatformTab('twitter',this)">🐦 X / Twitter</button>
+            <button class="ptab" onclick="switchPlatformTab('linkedin',this)">💼 LinkedIn</button>
+            <button class="ptab" onclick="switchPlatformTab('youtube',this)">🎬 YouTube</button>
+            <button class="ptab" onclick="switchPlatformTab('whatsapp',this)">📱 WhatsApp</button>
+          </div>
+          <div id="platform-content" style="background:#0f0f1a;border:1px solid #2a2a4a;border-radius:8px;padding:16px;min-height:120px;color:#ddd;font-size:0.92rem;line-height:1.8;white-space:pre-wrap;direction:rtl"></div>
+          <div style="display:flex;justify-content:flex-start;margin-top:12px;gap:10px">
+            <button onclick="copyPlatformContent()" style="background:#10b981;color:#fff;border:none;border-radius:6px;padding:8px 18px;cursor:pointer;font-size:0.88rem;font-weight:600">העתק 📋</button>
+            <span id="copy-platform-msg" style="color:#34d399;font-size:0.85rem;align-self:center;display:none">הועתק!</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="slides-section" style="display:none;margin-bottom:24px">
+      <div style="background:#1a1a2e;border:1px solid #3b82f6;border-radius:12px;padding:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3 style="color:#60a5fa">🖼️ שקופיות שחולצו מהסרטון</h3>
+          <span id="slides-count" style="color:#6b7280;font-size:0.85rem"></span>
+        </div>
+        <div id="slides-loading" style="text-align:center;padding:24px;color:#aaa">
+          <div class="spinner" style="margin:0 auto 12px"></div>
+          <div>מוריד סרטון ומחלץ שקופיות... (2-3 דקות)</div>
+        </div>
+        <div id="slides-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"></div>
+      </div>
+    </div>
+
+    <div id="creator-section" style="display:none;margin-bottom:24px">
+      <div style="background:#1a1a2e;border:1px solid #f97316;border-radius:12px;padding:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3 style="color:#fb923c">🎬 תוכן ליוצרים</h3>
+          <button onclick="copyCreatorContent()" style="background:#2a1a0e;color:#f97316;border:1px solid #f97316;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:0.85rem">העתק הכל 📋</button>
+        </div>
+        <div id="creator-content" style="color:#ddd;font-size:0.95rem;line-height:1.9;white-space:pre-wrap;direction:rtl"></div>
+      </div>
+    </div>
 
     <div id="summary-section" style="display:none;margin-bottom:24px">
       <div style="background:#1a1a2e;border:1px solid #7C3AED;border-radius:12px;padding:20px">
@@ -593,6 +657,229 @@ async function loadTranscript() {
 let currentLang = 'he';
 let currentVideoId = '';
 let currentTitle = '';
+let currentMode = localStorage.getItem('podsnap_mode') || 'business';
+
+function setMode(mode) {
+  currentMode = mode;
+  localStorage.setItem('podsnap_mode', mode);
+  const bBusiness = document.getElementById('mode-business-btn');
+  const bCreator  = document.getElementById('mode-creator-btn');
+  if (mode === 'business') {
+    bBusiness.className = 'btn';
+    bBusiness.style.cssText = 'padding:6px 14px;font-size:0.82rem';
+    bCreator.className = 'btn btn-outline';
+    bCreator.style.cssText = 'padding:6px 14px;font-size:0.82rem;border-color:#f97316;color:#f97316';
+    document.getElementById('opps-btn').style.display = 'inline-block';
+    document.getElementById('creator-btn').style.display = 'none';
+  } else {
+    bCreator.className = 'btn';
+    bCreator.style.cssText = 'padding:6px 14px;font-size:0.82rem;background:#f97316;border-color:#f97316';
+    bBusiness.className = 'btn btn-outline';
+    bBusiness.style.cssText = 'padding:6px 14px;font-size:0.82rem';
+    document.getElementById('creator-btn').style.display = 'inline-block';
+    document.getElementById('opps-btn').style.display = 'none';
+  }
+}
+
+async function getCreatorContent() {
+  const btn = document.getElementById('creator-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ מייצר תוכן...';
+  try {
+    const full_text = document.getElementById('full-text-area').value;
+    const res = await fetch('/api/creator_content', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({full_text, lang: currentLang})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    document.getElementById('creator-content').textContent = data.content;
+    document.getElementById('creator-section').style.display = 'block';
+    document.getElementById('creator-section').scrollIntoView({behavior: 'smooth'});
+    btn.textContent = '✓ מוכן!';
+  } catch(e) {
+    btn.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '🎬 יוצר תוכן'; }, 3000);
+  }
+}
+
+function copyCreatorContent() {
+  const text = document.getElementById('creator-content').textContent;
+  navigator.clipboard.writeText(text).catch(() => {});
+  const btn = event.target;
+  btn.textContent = '✓ הועתק!';
+  setTimeout(() => { btn.textContent = 'העתק הכל 📋'; }, 2000);
+}
+
+let platformsData = null;
+let currentPlatform = 'instagram';
+
+async function getAllPlatforms() {
+  const full_text = document.getElementById('full-text-area').value.trim();
+  if (!full_text) return;
+  const btn = document.getElementById('platforms-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ מייצר...';
+  const section = document.getElementById('platforms-section');
+  section.style.display = 'block';
+  document.getElementById('platforms-loading').style.display = 'block';
+  document.getElementById('platforms-body').style.display = 'none';
+  section.scrollIntoView({behavior: 'smooth'});
+  try {
+    const res = await fetch('/api/all_platforms', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({full_text, lang: currentLang})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    platformsData = data;
+    document.getElementById('platforms-loading').style.display = 'none';
+    document.getElementById('platforms-body').style.display = 'block';
+    currentPlatform = 'instagram';
+    document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.ptab').classList.add('active');
+    renderPlatformContent('instagram');
+    btn.textContent = '🌐 כל הפלטפורמות ✓';
+  } catch(e) {
+    btn.textContent = '❌ ' + e.message;
+    document.getElementById('platforms-loading').innerHTML = '<p style="color:#f87171">' + e.message + '</p>';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function switchPlatformTab(platform, el) {
+  currentPlatform = platform;
+  document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderPlatformContent(platform);
+}
+
+function renderPlatformContent(platform) {
+  if (!platformsData) return;
+  const box = document.getElementById('platform-content');
+  const d = platformsData[platform];
+  if (!d) { box.textContent = ''; return; }
+  if (platform === 'twitter') {
+    box.innerHTML = (Array.isArray(d) ? d : [d]).map(function(t, i) {
+      var chars = t.length;
+      return '<div style="border:1px solid #2a2a4a;border-radius:6px;padding:10px 12px;margin-bottom:8px">'
+        + '<span style="color:#aaa;font-size:0.75rem">Tweet ' + (i+1) + ' • ' + chars + '/280</span>'
+        + '<div style="margin-top:6px;direction:rtl">' + t + '</div>'
+        + '</div>';
+    }).join('');
+  } else if (platform === 'youtube') {
+    var titles = d.titles || [];
+    var desc = d.description || '';
+    var tags = d.tags || '';
+    box.innerHTML = '<div style="margin-bottom:12px"><strong style="color:#f59e0b">כותרות מוצעות:</strong><ol style="margin:8px 0 0 0;padding-right:20px">'
+      + titles.map(function(t) { return '<li style="margin-bottom:6px">' + t + '</li>'; }).join('')
+      + '</ol></div><div style="margin-bottom:12px"><strong style="color:#f59e0b">תיאור:</strong><div style="margin-top:6px;white-space:pre-wrap">' + desc + '</div></div>'
+      + '<div><strong style="color:#f59e0b">תגיות:</strong><div style="margin-top:6px;color:#aaa;font-size:0.85rem">' + tags + '</div></div>';
+  } else {
+    box.textContent = typeof d === 'string' ? d : JSON.stringify(d, null, 2);
+  }
+}
+
+function copyPlatformContent() {
+  if (!platformsData) return;
+  const d = platformsData[currentPlatform];
+  let text = '';
+  if (currentPlatform === 'twitter') {
+    text = (Array.isArray(d) ? d : [d]).join('\n\n---\n\n');
+  } else if (currentPlatform === 'youtube') {
+    text = (d.titles || []).join('\n') + '\n\n' + (d.description || '') + '\n\nתגיות: ' + (d.tags || '');
+  } else {
+    text = typeof d === 'string' ? d : JSON.stringify(d);
+  }
+  navigator.clipboard.writeText(text).catch(() => {});
+  const msg = document.getElementById('copy-platform-msg');
+  msg.style.display = 'inline';
+  setTimeout(() => { msg.style.display = 'none'; }, 2000);
+}
+
+let slidesJobId = null;
+let slidesPollTimer = null;
+
+async function extractSlides() {
+  const url = document.getElementById('url-input').value.trim();
+  if (!url) return;
+  const btn = document.getElementById('slides-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ מחלץ...';
+  document.getElementById('slides-section').style.display = 'block';
+  document.getElementById('slides-loading').style.display = 'block';
+  document.getElementById('slides-grid').innerHTML = '';
+  document.getElementById('slides-count').textContent = '';
+  document.getElementById('slides-section').scrollIntoView({behavior: 'smooth'});
+  try {
+    const res = await fetch('/api/extract_slides', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    slidesJobId = data.job_id;
+    slidesPollTimer = setInterval(pollSlidesJob, 4000);
+  } catch(e) {
+    btn.textContent = '❌ ' + e.message;
+    btn.disabled = false;
+    document.getElementById('slides-loading').innerHTML = '<p style="color:#f87171">' + e.message + '</p>';
+  }
+}
+
+async function pollSlidesJob() {
+  if (!slidesJobId) return;
+  try {
+    const res = await fetch('/api/job/' + slidesJobId);
+    const data = await res.json();
+    if (data.status === 'done') {
+      clearInterval(slidesPollTimer);
+      slidesJobId = null;
+      renderSlides(data.result);
+    } else if (data.status === 'error') {
+      clearInterval(slidesPollTimer);
+      slidesJobId = null;
+      const msg = (data.result && data.result.error) ? data.result.error : 'שגיאה לא ידועה';
+      document.getElementById('slides-loading').innerHTML = '<p style="color:#f87171">שגיאה: ' + msg + '</p>';
+      const btn = document.getElementById('slides-btn');
+      btn.textContent = '🖼️ שקופיות';
+      btn.disabled = false;
+    }
+  } catch(e) { /* ignore poll errors */ }
+}
+
+function renderSlides(result) {
+  document.getElementById('slides-loading').style.display = 'none';
+  const grid = document.getElementById('slides-grid');
+  const count = document.getElementById('slides-count');
+  const btn = document.getElementById('slides-btn');
+  const slides = result.slides || [];
+  const total = result.total_frames || 0;
+  if (slides.length === 0) {
+    grid.innerHTML = '<p style="color:#6b7280;text-align:center;padding:20px">לא נמצאו שקופיות בסרטון זה</p>';
+    count.textContent = total + ' frames נבדקו';
+    btn.textContent = '🖼️ שקופיות (0)';
+    btn.disabled = false;
+    return;
+  }
+  count.textContent = slides.length + ' שקופיות מתוך ' + total + ' frames';
+  btn.textContent = '🖼️ שקופיות (' + slides.length + ')';
+  btn.disabled = false;
+  grid.innerHTML = slides.map(function(s) {
+    var txt = s.text ? '<div style="padding:10px 12px;font-size:0.82rem;color:#ccc;line-height:1.5;direction:rtl">' + s.text.substring(0, 200) + '</div>' : '';
+    return '<div style="background:#0f0f1a;border:1px solid #2a2a4a;border-radius:10px;overflow:hidden">'
+      + '<div style="position:relative">'
+      + '<img src="data:image/jpeg;base64,' + s.image + '" style="width:100%;display:block" />'
+      + '<span style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.7);color:#fff;font-size:0.75rem;padding:2px 8px;border-radius:4px">' + s.timestamp_fmt + '</span>'
+      + '</div>' + txt + '</div>';
+  }).join('');
+}
 
 function renderResults(data) {
   currentLang = data.lang || 'he';
@@ -612,9 +899,10 @@ function renderResults(data) {
   translateBtn.textContent = '🌐 תרגם';
   translateBtn.disabled = false;
 
-  ['glossary-btn','summary-btn','opps-btn','pptx-premium-btn'].forEach(id => {
+  ['glossary-btn','summary-btn','pptx-premium-btn','slides-btn','platforms-btn'].forEach(id => {
     document.getElementById(id).style.display = 'inline-block';
   });
+  setMode(currentMode);
   document.getElementById('tools-row-2').style.display = 'flex';
   if (IS_ADMIN) {
     const liSec = document.getElementById('li-result-section');
@@ -944,15 +1232,22 @@ function resetSession() {
   const hide = id => { const el = document.getElementById(id); if (el) { el.style.display = 'none'; } };
   const clear = id => { const el = document.getElementById(id); if (el) { el.value !== undefined ? el.value = '' : el.innerHTML = ''; } };
   hide('results'); hide('summary-section'); hide('glossary-section');
-  hide('opps-section'); hide('li-result-section');
+  hide('opps-section'); hide('creator-section'); hide('slides-section'); hide('platforms-section'); hide('li-result-section');
   hide('ask-section'); hide('history-section'); hide('video-embed');
-  hide('tools-row-2');
+  hide('tools-row-2'); hide('mode-toggle-row');
   clear('url-input'); clear('full-text-area'); clear('summary-content');
   clear('glossary-grid'); clear('opps-content');
   clear('li-result-text'); clear('ask-answer'); clear('ask-input');
-  ['translate-btn','glossary-btn','summary-btn','pptx-premium-btn','opps-btn'].forEach(id => {
+  platformsData = null;
+  const pBtn = document.getElementById('platforms-btn');
+  if (pBtn) { pBtn.textContent = '🌐 כל הפלטפורמות'; pBtn.disabled = false; }
+  ['translate-btn','glossary-btn','summary-btn','pptx-premium-btn','opps-btn','slides-btn','platforms-btn'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
+  if (slidesPollTimer) { clearInterval(slidesPollTimer); slidesPollTimer = null; }
+  slidesJobId = null;
+  const slidesBtn = document.getElementById('slides-btn');
+  if (slidesBtn) { slidesBtn.textContent = '🖼️ שקופיות'; slidesBtn.disabled = false; }
   document.getElementById('stat-sections') && (document.getElementById('stat-sections').textContent = '—');
   document.getElementById('stat-duration') && (document.getElementById('stat-duration').textContent = '—');
 }

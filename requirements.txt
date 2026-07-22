@@ -1,5 +1,5 @@
 flask
-anthropic
+google-genai>=1.0.0
 python-dotenv
 gunicorn
 gevent
@@ -11,3 +11,4 @@ werkzeug
 requests
 psycopg2-binary
 flask-limiter
+Pillow

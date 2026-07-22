@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
-import anthropic
+from ai_utils import ask_ai, ask_ai_vision
 import requests as http_requests
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -1116,11 +1116,6 @@ def _build_smart_pptx_bytes(full_text, title):
     from pptx.util import Emu
     import json as _json
 
-    api_key = os.getenv('ANTHROPIC_API_KEY')
-    if not api_key:
-        raise ValueError('חסר API key')
-
-    client = anthropic.Anthropic(api_key=api_key)
     prompt = f"""קרא את התמלול הבא וזהה את הנושאים המרכזיים שנדונו.
 לכל נושא תן:
 1. כותרת קצרה (עד 8 מילים)
@@ -1141,12 +1136,7 @@ def _build_smart_pptx_bytes(full_text, title):
 התמלול:
 {full_text[:12000]}"""
 
-    msg = client.messages.create(
-        model='claude-haiku-4-5-20251001',
-        max_tokens=2000,
-        messages=[{'role': 'user', 'content': prompt}]
-    )
-    raw = msg.content[0].text.strip()
+    raw = ask_ai(prompt, max_tokens=2000)
     json_match = re.search(r'\{.*\}', raw, re.DOTALL)
     if not json_match:
         raise ValueError('לא נמצא JSON')
@@ -1332,11 +1322,6 @@ def js_pptx():
     if not full_text:
         return jsonify({'error': 'אין תמלול'}), 400
 
-    api_key = os.getenv('ANTHROPIC_API_KEY')
-    if not api_key:
-        return jsonify({'error': 'חסר API key'}), 500
-
-    client = anthropic.Anthropic(api_key=api_key)
     prompt = f"""קרא את התמלול וזהה עד 8 נושאים מרכזיים.
 לכל נושא תן כותרת קצרה (עד 8 מילים) ו-4 נקודות (כל אחת משפט אחד עד 25 מילים).
 החזר JSON בלבד:
@@ -1346,16 +1331,11 @@ def js_pptx():
 {full_text[:12000]}"""
 
     try:
-        msg = client.messages.create(
-            model='claude-haiku-4-5-20251001',
-            max_tokens=2000,
-            messages=[{'role': 'user', 'content': prompt}]
-        )
-        raw = msg.content[0].text.strip()
+        raw = ask_ai(prompt, max_tokens=2000)
         m = re.search(r'\{.*\}', raw, re.DOTALL)
         topics_data = json.loads(m.group())['topics']
     except Exception as e:
-        return jsonify({'error': f'שגיאת Claude: {str(e)}'}), 502
+        return jsonify({'error': f'שגיאת AI: {str(e)}'}), 502
 
     # כתוב JSON זמני
     gen_dir = os.path.join(os.path.dirname(__file__), 'pptx_gen')
@@ -1410,11 +1390,6 @@ def ai_summary():
     if not full_text:
         return jsonify({'error': 'אין תמלול'}), 400
 
-    api_key = os.getenv('ANTHROPIC_API_KEY')
-    if not api_key:
-        return jsonify({'error': 'חסר API key'}), 500
-
-    client = anthropic.Anthropic(api_key=api_key)
     if _is_english(lang):
         prompt = f"""Read the following transcript and write a concise, structured summary in English.
 The summary should include:
@@ -1459,12 +1434,7 @@ Transcript:
 {full_text[:15000]}"""
 
     try:
-        msg = client.messages.create(
-            model='claude-haiku-4-5-20251001',
-            max_tokens=1000,
-            messages=[{'role': 'user', 'content': prompt}]
-        )
-        return jsonify({'summary': msg.content[0].text.strip()})
+        return jsonify({'summary': ask_ai(prompt, max_tokens=1000)})
     except Exception as e:
         return jsonify({'error': str(e)}), 502
 
@@ -1477,12 +1447,7 @@ def ai_glossary():
     if not full_text:
         return jsonify({'error': 'אין תמלול'}), 400
 
-    api_key = os.getenv('ANTHROPIC_API_KEY')
-    if not api_key:
-        return jsonify({'error': 'חסר API key'}), 500
-
     lang = data.get('lang', 'he')
-    client = anthropic.Anthropic(api_key=api_key)
     if _is_english(lang):
         prompt = f"""Read the following transcript and extract 5-8 key concepts/terms someone needs to know before listening to this episode.
 
@@ -1521,12 +1486,7 @@ Transcript:
 {full_text[:12000]}"""
 
     try:
-        msg = client.messages.create(
-            model='claude-haiku-4-5-20251001',
-            max_tokens=1200,
-            messages=[{'role': 'user', 'content': prompt}]
-        )
-        raw = msg.content[0].text.strip()
+        raw = ask_ai(prompt, max_tokens=1200)
         start = raw.find('[')
         end = raw.rfind(']') + 1
         terms = json.loads(raw[start:end])
@@ -1544,11 +1504,6 @@ def business_opportunities():
     if not full_text:
         return jsonify({'error': 'אין תמלול'}), 400
 
-    api_key = os.getenv('ANTHROPIC_API_KEY')
-    if not api_key:
-        return jsonify({'error': 'חסר API key'}), 500
-
-    client = anthropic.Anthropic(api_key=api_key)
     if _is_english(lang):
         prompt = f"""Read the following transcript and identify business opportunities.
 For each opportunity specify:
@@ -1595,12 +1550,7 @@ Transcript:
 {full_text[:15000]}"""
 
     try:
-        msg = client.messages.create(
-            model='claude-haiku-4-5-20251001',
-            max_tokens=1500,
-            messages=[{'role': 'user', 'content': prompt}]
-        )
-        return jsonify({'opportunities': msg.content[0].text.strip()})
+        return jsonify({'opportunities': ask_ai(prompt, max_tokens=1500)})
     except Exception as e:
         return jsonify({'error': str(e)}), 502
 
@@ -1687,10 +1637,6 @@ def _slide_summary(prs, takeaways):
         _txt(sl, t, 0.65, y+0.18, 8.7, 0.9, 15)
 
 def _claude_extract(full_text, title):
-    api_key = os.getenv('ANTHROPIC_API_KEY')
-    if not api_key:
-        return None
-    client = anthropic.Anthropic(api_key=api_key)
     prompt = f"""אתה עוזר שיוצר מצגות מקצועיות מתמלולי פודקאסטים.
 קרא את התמלול הבא וצור מבנה JSON למצגת.
 
@@ -1717,15 +1663,13 @@ def _claude_extract(full_text, title):
 תמלול:
 {full_text[:14000]}"""
 
-    msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=3000,
-        messages=[{'role': 'user', 'content': prompt}]
-    )
-    raw = msg.content[0].text.strip()
-    m = re.search(r'\{[\s\S]*\}', raw)
-    if m:
-        return json.loads(m.group())
+    try:
+        raw = ask_ai(prompt, max_tokens=3000)
+        m = re.search(r'\{[\s\S]*\}', raw)
+        if m:
+            return json.loads(m.group())
+    except Exception:
+        pass
     return None
 
 
@@ -1766,6 +1710,245 @@ def premium_pptx():
                      mimetype='application/vnd.openxmlformats-officedocument.presentationml.presentation')
 
 
+@app.route('/api/creator_content', methods=['POST'])
+@login_required
+def creator_content():
+    data = request.json or {}
+    full_text = data.get('full_text', '').strip()
+    lang = data.get('lang', 'he')
+    if not full_text:
+        return jsonify({'error': 'אין תמלול'}), 400
+    if _is_english(lang):
+        prompt = f"""You are a content creator assistant. Analyze this podcast transcript and provide:
+
+1. **VIRAL HOOK** — One powerful opening sentence for a Reel/Short (max 12 words, must make people stop scrolling)
+2. **3 CONTENT IDEAS** — Titles for posts/videos/reels based on this episode (each on a new line, starting with a number)
+3. **60-SECOND SCRIPT** — A spoken script about the most interesting topic in this episode (exactly the length someone can read in 60 seconds at normal pace — about 130-150 words)
+4. **YOUTUBE DESCRIPTION** — 3-4 sentences optimized for search + 8 relevant hashtags
+
+Return in this exact format:
+🎣 VIRAL HOOK:
+[hook here]
+
+💡 CONTENT IDEAS:
+1. [idea 1]
+2. [idea 2]
+3. [idea 3]
+
+🎬 60-SECOND SCRIPT:
+[script here]
+
+🔖 YOUTUBE DESCRIPTION:
+[description here]
+[hashtags here]
+
+Transcript:
+{full_text[:14000]}"""
+    else:
+        prompt = f"""אתה עוזר ליוצרי תוכן. נתח את תמלול הפודקאסט הזה וספק:
+
+1. **וו ויראלי** — משפט פתיחה אחד עוצמתי לReel/Short (עד 12 מילים, חייב לגרום לאנשים לעצור את הגלילה)
+2. **3 רעיונות לתוכן** — כותרות לפוסטים/סרטונים/ריילס מהפרק הזה (כל אחד בשורה נפרדת עם מספר)
+3. **סקריפט 60 שניות** — טקסט דיבור על הנושא הכי מעניין בפרק (בדיוק באורך שאפשר לקרוא ב-60 שניות — כ-120-140 מילים)
+4. **תיאור YouTube** — 3-4 משפטים מותאמים לחיפוש + 8 hashtags רלוונטיים
+
+החזר בפורמט הזה בדיוק:
+🎣 וו ויראלי:
+[הוו כאן]
+
+💡 רעיונות לתוכן:
+1. [רעיון 1]
+2. [רעיון 2]
+3. [רעיון 3]
+
+🎬 סקריפט 60 שניות:
+[הסקריפט כאן]
+
+🔖 תיאור YouTube:
+[תיאור כאן]
+[hashtags כאן]
+
+התמלול:
+{full_text[:14000]}"""
+    try:
+        return jsonify({'content': ask_ai(prompt, max_tokens=1800)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 502
+
+
+def _process_slides_job(job_id, video_url, uid):
+    import base64
+    import shutil
+
+    try:
+        user_db.update_job(job_id, 'processing')
+        vid = extract_video_id(video_url)
+        if not vid:
+            user_db.update_job(job_id, 'error', {'error': 'קישור יוטיוב לא תקין'})
+            return
+
+        if not _YTDLP_AVAILABLE:
+            user_db.update_job(job_id, 'error', {'error': 'yt-dlp לא זמין בשרת'})
+            return
+
+        tmp_dir = tempfile.mkdtemp(prefix='podsnap_slides_')
+        video_path = os.path.join(tmp_dir, 'video.mp4')
+        frames_dir = os.path.join(tmp_dir, 'frames')
+        os.makedirs(frames_dir, exist_ok=True)
+
+        try:
+            ydl_opts = {
+                'format': 'bestvideo[height<=360][ext=mp4]/bestvideo[height<=360]/worst[ext=mp4]/worst',
+                'outtmpl': video_path,
+                'quiet': True,
+                'no_warnings': True,
+            }
+            if os.path.exists(COOKIES_FILE):
+                ydl_opts['cookiefile'] = COOKIES_FILE
+
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([f'https://www.youtube.com/watch?v={vid}'])
+
+            if not os.path.exists(video_path):
+                for f in os.listdir(tmp_dir):
+                    full = os.path.join(tmp_dir, f)
+                    if os.path.isfile(full) and f.startswith('video'):
+                        os.rename(full, video_path)
+                        break
+
+            if not os.path.exists(video_path):
+                user_db.update_job(job_id, 'error', {'error': 'לא הצלחתי להוריד את הסרטון — ייתכן שהוא פרטי'})
+                return
+
+            dur_result = subprocess.run(
+                ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+                 '-of', 'default=noprint_wrappers=1:nokey=1', video_path],
+                capture_output=True, text=True, timeout=30
+            )
+            try:
+                duration = float(dur_result.stdout.strip())
+            except Exception:
+                duration = 1800
+
+            n_frames = min(20, max(8, int(duration / 60)))
+            interval = max(30, int(duration / n_frames))
+
+            subprocess.run([
+                'ffmpeg', '-i', video_path,
+                '-vf', f'fps=1/{interval},scale=640:-1',
+                '-q:v', '3',
+                os.path.join(frames_dir, '%04d.jpg')
+            ], capture_output=True, timeout=180)
+
+            frame_files = sorted(f for f in os.listdir(frames_dir) if f.endswith('.jpg'))
+            if not frame_files:
+                user_db.update_job(job_id, 'error', {'error': 'ffmpeg לא הצליח לחלץ frames'})
+                return
+
+            slides = []
+
+            for i, fname in enumerate(frame_files[:20]):
+                frame_path = os.path.join(frames_dir, fname)
+                with open(frame_path, 'rb') as f:
+                    img_b64 = base64.b64encode(f.read()).decode()
+
+                timestamp = (i + 1) * interval
+                try:
+                    answer = ask_ai_vision(
+                        'Is this frame a presentation slide, whiteboard, or screen with mainly text/diagrams (not a person talking)? Answer YES or NO on line 1. If YES, extract the key text visible on line 2.',
+                        img_b64,
+                        media_type='image/jpeg',
+                        max_tokens=400
+                    )
+                    if answer.upper().startswith('YES'):
+                        lines = answer.split('\n', 1)
+                        extracted_text = lines[1].strip() if len(lines) > 1 else ''
+                        slides.append({
+                            'timestamp': timestamp,
+                            'timestamp_fmt': seconds_to_time(timestamp),
+                            'image': img_b64,
+                            'text': extracted_text,
+                        })
+                except Exception as e:
+                    print(f'[slides] frame {i} vision error: {e}')
+
+            user_db.update_job(job_id, 'done', {
+                'slides': slides,
+                'total_frames': len(frame_files),
+                'type': 'slides',
+            })
+
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    except Exception as e:
+        user_db.update_job(job_id, 'error', {'error': str(e)})
+        notify_ceo(f'⚠️ Slides job failed\nJob: {job_id}\nUser: {uid}\n{str(e)}')
+
+
+@app.route('/api/all_platforms', methods=['POST'])
+@login_required
+def all_platforms():
+    data = request.json or {}
+    full_text = data.get('full_text', '').strip()
+    lang = data.get('lang', 'he')
+    if not full_text:
+        return jsonify({'error': 'אין תמלול'}), 400
+    if _is_english(lang):
+        prompt = f"""Analyze this podcast/video transcript and create optimized content for every major social platform.
+Return ONLY valid JSON, no markdown, no extra text:
+{{
+  "instagram": "150-word caption that tells a story + line break + 20 relevant hashtags starting with #",
+  "tiktok": "Viral 60-second spoken script starting with a hook that stops scrolling. End with a call to action. Then new line: 8 hashtags",
+  "twitter": ["tweet 1 (max 280 chars, strong hook)", "tweet 2 (insight or stat)", "tweet 3 (key point)", "tweet 4 (practical tip)", "tweet 5 (CTA + link placeholder)"],
+  "linkedin": "200-word professional post: open with a bold insight, share 3 key lessons numbered, close with a question to drive comments. Add 5 professional hashtags at end",
+  "youtube": {{"titles": ["Title option 1 (curiosity gap)", "Title option 2 (how-to format)", "Title option 3 (number list)"], "description": "3-paragraph SEO description (first paragraph is the hook for search, second covers key points, third is CTA). Then: Tags: tag1, tag2, tag3...", "tags": "10 comma-separated search tags"}},
+  "whatsapp": "Short punchy message (2-3 sentences max) to share as status or in groups. No hashtags."
+}}
+
+Transcript:
+{full_text[:13000]}"""
+    else:
+        prompt = f"""נתח את תמלול הפודקאסט/סרטון הזה וצור תוכן מותאם לכל פלטפורמה.
+החזר JSON תקין בלבד, ללא markdown, ללא טקסט נוסף:
+{{
+  "instagram": "כיתוב 150 מילה שמספר סיפור + שורה ריקה + 20 hashtags רלוונטיים שמתחילים ב-#",
+  "tiktok": "סקריפט דיבור 60 שניות שמתחיל עם hook שעוצר גלילה. מסתיים עם קריאה לפעולה. שורה חדשה: 8 hashtags",
+  "twitter": ["tweet 1 (עד 280 תווים, hook חזק)", "tweet 2 (תובנה או נתון)", "tweet 3 (נקודה מרכזית)", "tweet 4 (טיפ מעשי)", "tweet 5 (CTA + מקום לקישור)"],
+  "linkedin": "פוסט מקצועי 200 מילה: פתח עם תובנה נועזת, שתף 3 לקחים ממוספרים, סיים בשאלה. הוסף 5 hashtags מקצועיים בסוף",
+  "youtube": {{"titles": ["אפשרות כותרת 1 (פער סקרנות)", "אפשרות כותרת 2 (פורמט איך-לעשות)", "אפשרות כותרת 3 (רשימת מספרים)"], "description": "תיאור SEO ב-3 פסקאות (פסקה 1: hook לחיפוש, פסקה 2: נקודות מרכזיות, פסקה 3: CTA). אחר כך: תגיות: תגית1, תגית2...", "tags": "10 תגיות חיפוש מופרדות בפסיקים"}},
+  "whatsapp": "הודעה קצרה ועוצמתית (2-3 משפטים מקסימום) לשיתוף כסטטוס או בקבוצות. ללא hashtags."
+}}
+
+התמלול:
+{full_text[:13000]}"""
+    try:
+        raw = ask_ai(prompt, max_tokens=3000)
+        m = re.search(r'\{[\s\S]*\}', raw)
+        if not m:
+            return jsonify({'error': 'שגיאה בפורמט התשובה'}), 502
+        result = json.loads(m.group())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 502
+
+
+@app.route('/api/extract_slides', methods=['POST'])
+@login_required
+def extract_slides():
+    u = current_user()
+    data = request.json or {}
+    url = data.get('url', '').strip()
+    if not url:
+        return jsonify({'error': 'חסר URL'}), 400
+    if not extract_video_id(url):
+        return jsonify({'error': 'קישור יוטיוב לא תקין'}), 400
+    job_id = uuid4().hex
+    user_db.create_job(job_id, u['id'], url)
+    threading.Thread(target=_process_slides_job, args=(job_id, url, u['id']), daemon=True).start()
+    return jsonify({'job_id': job_id})
+
+
 @app.route('/api/create_post', methods=['POST'])
 @login_required
 def create_post():
@@ -1774,10 +1957,6 @@ def create_post():
     title = data.get('title', '')
     if not full_text:
         return jsonify({'error': 'אין תמלול'}), 400
-    api_key = os.getenv('ANTHROPIC_API_KEY')
-    if not api_key:
-        return jsonify({'error': 'חסר API key'}), 500
-    client = anthropic.Anthropic(api_key=api_key)
     prompt = f"""כתוב פוסט מקצועי לרשתות חברתיות (לינקדאין / פייסבוק) בעברית, מבוסס על הפרק הבא.
 
 הפוסט צריך להיות:
@@ -1793,12 +1972,7 @@ def create_post():
 
 כתוב רק את הפוסט עצמו, ללא הסברים."""
 
-    msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=1000,
-        messages=[{'role': 'user', 'content': prompt}]
-    )
-    return jsonify({'post': msg.content[0].text.strip()})
+    return jsonify({'post': ask_ai(prompt, max_tokens=1000)})
 
 
 @app.route('/api/ask', methods=['POST'])
@@ -1810,10 +1984,6 @@ def ask_episode():
     lang = data.get('lang', 'he')
     if not full_text or not question:
         return jsonify({'error': 'חסר תמלול או שאלה'}), 400
-    api_key = os.getenv('ANTHROPIC_API_KEY')
-    if not api_key:
-        return jsonify({'error': 'חסר API key'}), 500
-    client = anthropic.Anthropic(api_key=api_key)
     if _is_english(lang):
         content = f"""Answer the following question in English, based only on the transcript.
 If the answer is not in the transcript — say so clearly.
@@ -1832,12 +2002,7 @@ Transcript:
 
 תמלול:
 {full_text[:12000]}"""
-    msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=600,
-        messages=[{'role': 'user', 'content': content}]
-    )
-    return jsonify({'answer': msg.content[0].text.strip()})
+    return jsonify({'answer': ask_ai(content, max_tokens=600)})
 
 
 @app.route('/api/share', methods=['POST'])
@@ -2117,8 +2282,6 @@ def linkedin_post():
     styles_dict = LINKEDIN_STYLES_EN if _is_english(lang) else LINKEDIN_STYLES
     style_instruction = styles_dict[style]
 
-    api_key = os.getenv('ANTHROPIC_API_KEY')
-    ai = anthropic.Anthropic(api_key=api_key)
     if _is_english(lang):
         prompt = f"""Write a LinkedIn post in English using an interesting insight from this episode as the opening hook, then promote the app getpodsnap.com.
 
@@ -2163,12 +2326,7 @@ Episode content:
         footer = "\n\n🎙️ ניתוח AI מלא של פודקאסטים → getpodsnap.com"
 
     try:
-        msg = ai.messages.create(
-            model='claude-haiku-4-5-20251001',
-            max_tokens=600,
-            messages=[{'role': 'user', 'content': prompt}]
-        )
-        post_text = msg.content[0].text.strip()
+        post_text = ask_ai(prompt, max_tokens=600)
         post_text += footer
     except Exception as e:
         return jsonify({'error': f'שגיאת AI: {str(e)}'}), 502

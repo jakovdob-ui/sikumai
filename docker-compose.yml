@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  shulchan4:
+    build: .
+    restart: always
+    env_file: .env
+    networks:
+      - traefik-web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.shulchan4.rule=Host(`shulchan4.187.127.85.157.nip.io`) || Host(`getpodsnap.com`) || Host(`www.getpodsnap.com`)"
+      - "traefik.http.routers.shulchan4.entrypoints=websecure"
+      - "traefik.http.routers.shulchan4.tls=true"
+      - "traefik.http.routers.shulchan4.tls.certresolver=letsencrypt"
+      - "traefik.http.services.shulchan4.loadbalancer.server.port=5002"
+
+networks:
+  traefik-web:
+    external: true

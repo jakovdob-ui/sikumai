@@ -3,23 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>כניסה — שולחן 4</title>
+<title>כניסה — PodSnap</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f0f0f 0%,#1a1a2e 100%)}
   .card{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:16px;padding:48px 40px;width:400px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
   .logo{font-size:1.8rem;font-weight:900;color:#fff;text-align:center;margin-bottom:6px}
-  .logo span{color:#e94560}
+  .logo span{color:#7C3AED}
   .sub{font-size:0.85rem;color:#888;text-align:center;margin-bottom:36px}
   label{display:block;font-size:0.75rem;color:#888;margin-bottom:6px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
   input{width:100%;padding:12px 16px;background:#0f0f1a;border:1.5px solid #2a2a4a;border-radius:8px;color:#fff;font-size:0.95rem;margin-bottom:18px;transition:border-color .2s;direction:ltr}
-  input:focus{outline:none;border-color:#e94560}
-  .btn{width:100%;padding:14px;background:#e94560;color:#fff;font-weight:700;font-size:1rem;border:none;border-radius:8px;cursor:pointer;transition:background .2s;margin-top:4px}
-  .btn:hover{background:#c73652}
-  .err{color:#e94560;font-size:0.82rem;text-align:center;background:rgba(233,69,96,.1);border:1px solid rgba(233,69,96,.3);border-radius:6px;padding:10px;margin-bottom:16px}
+  input:focus{outline:none;border-color:#7C3AED}
+  .btn{width:100%;padding:14px;background:#7C3AED;color:#fff;font-weight:700;font-size:1rem;border:none;border-radius:8px;cursor:pointer;transition:background .2s;margin-top:4px}
+  .btn:hover{background:#6D28D9}
+  .err{color:#f87171;font-size:0.82rem;text-align:center;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:6px;padding:10px;margin-bottom:16px}
+  .success{color:#34d399;font-size:0.82rem;text-align:center;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);border-radius:6px;padding:10px;margin-bottom:16px}
   .link-row{text-align:center;margin-top:20px;font-size:0.85rem;color:#888}
-  .link-row a{color:#e94560;text-decoration:none}
+  .link-row a{color:#a78bfa;text-decoration:none}
   .link-row a:hover{text-decoration:underline}
+  .forgot{text-align:left;margin-top:-10px;margin-bottom:16px;font-size:0.82rem}
+  .forgot a{color:#a78bfa;text-decoration:none}
+  .forgot a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -29,15 +33,24 @@
   {% if error %}
   <div class="err">{{ error }}</div>
   {% endif %}
+  {% if request.args.get('reset') %}
+  <div class="success">✅ הסיסמה אופסה בהצלחה! כנס עם הסיסמה החדשה.</div>
+  {% endif %}
   <form method="POST">
     <label>אימייל</label>
     <input type="email" name="email" placeholder="you@example.com" required autofocus autocomplete="email">
     <label>סיסמה</label>
     <input type="password" name="password" placeholder="••••••" required autocomplete="current-password">
+    <div class="forgot"><a href="/forgot-password">שכחתי סיסמה</a></div>
     <button type="submit" class="btn">כניסה ←</button>
   </form>
   <div class="link-row">
     אין לך חשבון? <a href="/register">הירשם בחינם</a>
+  </div>
+  <div style="text-align:center;margin-top:24px;font-size:0.75rem;color:#555">
+    <a href="/terms" style="color:#555;text-decoration:none" onmouseover="this.style.color='#a78bfa'" onmouseout="this.style.color='#555'">תנאי שימוש</a>
+    &nbsp;·&nbsp;
+    <a href="/privacy" style="color:#555;text-decoration:none" onmouseover="this.style.color='#a78bfa'" onmouseout="this.style.color='#555'">מדיניות פרטיות</a>
   </div>
 </div>
 </body>

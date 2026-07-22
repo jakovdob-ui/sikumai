@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import requests
-import anthropic
+from ai_utils import ask_ai
 import db
 
 LINKEDIN_ADMIN_TOKEN = os.getenv('LINKEDIN_ADMIN_TOKEN', '')
@@ -113,87 +113,93 @@ def _detect_lang(text):
 
 
 def generate_post(title, transcript):
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     content_snippet = transcript[:3000] if transcript else f'פרק: {title}'
     lang = _detect_lang(transcript or title)
     if lang == 'en':
-        prompt = f'''Write a LinkedIn post in English that markets a tool called PodSnap (getpodsnap.com).
+        prompt = f'''Write a LinkedIn post in English marketing PodSnap (getpodsnap.com).
 
-The post should feel like a personal testimonial from someone who just used PodSnap to analyze this episode:
+PodSnap serves TWO audiences from one YouTube link, in under 60 seconds:
+• 💼 Business owners → 3-5 business opportunities per episode (target audience, how to execute, revenue potential)
+• 🎬 Content creators → ready-to-post content for 6 platforms: Instagram, TikTok, X/Twitter, LinkedIn, YouTube, WhatsApp
+
+Use this episode as proof it works:
 Title: {title}
 Content: {content_snippet}
 
-Instructions:
-- Open with: "I just listened to [episode topic] — and instead of taking notes for an hour, I used PodSnap to get everything in 60 seconds."
-- Share 2-3 specific insights FROM the episode (extracted from the content above) — make these feel real and valuable
-- Explain what PodSnap gave you: AI summary, business opportunities, LinkedIn post ready to publish
-- End with a clear CTA: "Try it free → getpodsnap.com"
-- 3-4 relevant hashtags (#AI #Podcasts #Productivity)
-- Length: 150-180 words
-- Write only the post, no title or explanation'''
-        footer = "\n\n🎙️ Try free → getpodsnap.com"
-    else:
-        prompt = f'''כתוב פוסט LinkedIn בעברית שמשווק כלי בשם PodSnap (getpodsnap.com).
+Structure:
+1. Open with a HOOK — a problem that business owners OR content creators feel (too much content, no time to extract value, spending hours creating posts that could take seconds)
+2. Introduce PodSnap: "One YouTube link. Two types of output." — briefly mention both business opportunities AND the 6-platform content
+3. ONE specific result from THIS episode (1 sentence — e.g. what business idea or content angle this episode would produce)
+4. CTA: "First 3 analyses free → getpodsnap.com"
+5. 3-4 hashtags: #AI #ContentCreation #BusinessGrowth #Productivity
 
-הפוסט צריך להיראות כמו המלצה אישית של מישהו שהשתמש ב-PodSnap כדי לנתח את הפרק הזה:
+Length: 150-200 words. Write only the post, no title or explanation.'''
+        footer = "\n\n🎙️ First 3 free → getpodsnap.com"
+    else:
+        prompt = f'''כתוב פוסט LinkedIn בעברית שמשווק את PodSnap (getpodsnap.com).
+
+PodSnap משרת שני קהלים מקישור YouTube אחד, תוך 60 שניות:
+• 💼 בעלי עסקים ← 3-5 הזדמנויות עסקיות מכל פרק (קהל יעד, דרך מימוש, פוטנציאל הכנסה)
+• 🎬 יוצרי תוכן ← תוכן מוכן ל-6 פלטפורמות: Instagram, TikTok, X/Twitter, LinkedIn, YouTube, WhatsApp
+
+השתמש בפרק הזה כהוכחה שזה עובד:
 כותרת: {title}
 תוכן: {content_snippet}
 
-הנחיות:
-- פתח עם: "האזנתי לפרק על [נושא הפרק] — ובמקום לרשום הערות שעה שלמה, השתמשתי ב-PodSnap וקיבלתי הכל תוך 60 שניות."
-- שתף 2-3 תובנות ספציפיות מהפרק (מחולצות מהתוכן למעלה) — שיהיו אמיתיות ובעלות ערך
-- הסבר מה PodSnap נתן לך: סיכום AI, הזדמנויות עסקיות, פוסט LinkedIn מוכן לפרסום
-- סיים עם CTA ברור: "נסה חינם ← getpodsnap.com"
-- 3-4 hashtags רלוונטיים (#AI #פודקאסטים #פרודוקטיביות)
-- אורך: 150-180 מילים
-- כתוב רק את הפוסט, ללא כותרת או הסבר'''
-        footer = "\n\n🎙️ נסה חינם ← getpodsnap.com"
-    msg = client.messages.create(
-        model='claude-haiku-4-5-20251001',
-        max_tokens=600,
-        messages=[{'role': 'user', 'content': prompt}]
-    )
-    return msg.content[0].text.strip() + footer
+מבנה:
+1. פתח עם HOOK — בעיה שבעל עסק או יוצר תוכן מרגיש (יותר מדי תוכן, אין זמן להפיק ממנו ערך, שעות על יצירת פוסטים שיכלו לקחת שניות)
+2. הצג את PodSnap: "קישור YouTube אחד. שני סוגי פלט." — ציין בקצרה גם הזדמנויות עסקיות וגם תוכן ל-6 פלטפורמות
+3. תוצאה ספציפית אחת מהפרק הזה (משפט אחד — למשל איזו הזדמנות עסקית או זווית תוכן הפרק הזה היה מייצר)
+4. CTA: "3 ניתוחים ראשונים חינם ← getpodsnap.com"
+5. 3-4 hashtags: #AI #יוצריתוכן #עסקים #פרודוקטיביות
+
+אורך: 150-200 מילים. כתוב רק את הפוסט, ללא כותרת או הסבר.'''
+        footer = "\n\n🎙️ 3 ניתוחים ראשונים חינם ← getpodsnap.com"
+    return ask_ai(prompt, max_tokens=600) + footer
 
 
 def generate_telegram_post(title, transcript):
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     content_snippet = transcript[:2000] if transcript else f'פרק: {title}'
     lang = _detect_lang(transcript or title)
     if lang == 'en':
-        prompt = f'''Write a short Telegram post in English that markets PodSnap (getpodsnap.com) using a real insight from this episode.
+        prompt = f'''Write a short Telegram post in English marketing PodSnap (getpodsnap.com).
 
-Episode title: {title}
+PodSnap gives TWO types of people exactly what they need from any YouTube video in 60 seconds:
+💼 Business owners → business opportunities extracted
+🎬 Content creators → posts for 6 platforms ready to publish
+
+Episode used as example:
+Title: {title}
 Content: {content_snippet}
 
-Instructions:
-- 3-4 sentences only
-- Start with 🎙️ emoji
-- Share ONE specific insight from the episode (make it feel valuable)
-- Then say: "I got this from PodSnap's AI analysis in under a minute — no note-taking needed."
-- End: "Try it free → getpodsnap.com"
-- Write only the post'''
+Structure (3-4 sentences only):
+1. Hook — a pain that business owners OR creators feel (too much to watch, no time to create content from it)
+2. Introduce PodSnap — mention both audiences and what each gets
+3. ONE concrete result from this episode (1 sentence)
+4. "First 3 analyses free → getpodsnap.com"
+
+Write only the post.'''
         footer = ""
     else:
-        prompt = f'''כתוב פוסט קצר לטלגרם בעברית שמשווק את PodSnap (getpodsnap.com) תוך שימוש בתובנה אמיתית מהפרק.
+        prompt = f'''כתוב פוסט קצר לטלגרם בעברית שמשווק את PodSnap (getpodsnap.com).
 
-כותרת הפרק: {title}
+PodSnap נותן לשני סוגי אנשים בדיוק מה שהם צריכים מכל סרטון YouTube תוך 60 שניות:
+💼 בעלי עסקים ← הזדמנויות עסקיות שחולצו מהפרק
+🎬 יוצרי תוכן ← פוסטים ל-6 פלטפורמות מוכנים לפרסום
+
+פרק לדוגמה:
+כותרת: {title}
 תוכן: {content_snippet}
 
-הנחיות:
-- 3-4 משפטים בלבד
-- התחל עם emoji 🎙️
-- שתף תובנה ספציפית אחת מהפרק (שתהיה בעלת ערך)
-- אחר כך כתוב: "קיבלתי את זה מניתוח AI של PodSnap תוך פחות מדקה — בלי לרשום הערות."
-- סיים: "נסה חינם ← getpodsnap.com"
-- כתוב רק את הפוסט'''
+מבנה (3-4 משפטים בלבד):
+1. Hook — כאב שבעל עסק או יוצר תוכן מרגיש (יותר מדי תוכן לצרוך, אין זמן ליצור תוכן ממנו)
+2. הצג את PodSnap — ציין שני הקהלים ומה כל אחד מקבל
+3. תוצאה קונקרטית אחת מהפרק הזה (משפט אחד)
+4. "3 ניתוחים ראשונים חינם ← getpodsnap.com"
+
+כתוב רק את הפוסט.'''
         footer = ""
-    msg = client.messages.create(
-        model='claude-haiku-4-5-20251001',
-        max_tokens=400,
-        messages=[{'role': 'user', 'content': prompt}]
-    )
-    return msg.content[0].text.strip() + footer
+    return ask_ai(prompt, max_tokens=400) + footer
 
 
 def publish_to_telegram_channels(post_text):
@@ -226,27 +232,19 @@ def publish_to_telegram_channels(post_text):
 
 
 def generate_facebook_post(title, transcript):
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     content_snippet = transcript[:2000] if transcript else f'פרק: {title}'
-    msg = client.messages.create(
-        model='claude-haiku-4-5-20251001',
-        max_tokens=400,
-        messages=[{
-            'role': 'user',
-            'content': f'''כתוב פוסט קצר בעברית לעמוד Facebook על בסיס הנושא הבא.
+    prompt = f'''כתוב פוסט קצר בעברית לעמוד Facebook שמשווק את PodSnap — כלי AI לבעלי עסקים ויוצרי תוכן.
 
 כותרת הפרק: {title}
 תוכן: {content_snippet}
 
 הנחיות:
 - 3-4 משפטים, קריא ומושך
-- תובנה אחת חזקה מהפרק, מנקודת מבט אישית
-- CTA קצר בסוף
-- אל תציין את שם הפרק או היוצר
+- פנה לאחד משני הקהלים: בעל עסק שמחפש הזדמנויות עסקיות, או יוצר תוכן שרוצה לפרסם ל-6 פלטפורמות בבת אחת
+- תובנה אחת חזקה מהפרק שרלוונטית לקהל היעד שבחרת
+- CTA קצר: "getpodsnap.com"
 - כתוב רק את הפוסט'''
-        }]
-    )
-    post_text = msg.content[0].text.strip()
+    post_text = ask_ai(prompt, max_tokens=400)
     post_text += "\n\n🎙️ ניתוח AI מלא של פודקאסטים → getpodsnap.com"
     return post_text
 
